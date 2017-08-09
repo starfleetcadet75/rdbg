@@ -1,0 +1,24 @@
+[package]
+name = "rdbg"
+description = "A debugger written in Rust"
+repository = "https://github.com/starfleetcadet75/rdbg"
+version = "0.1.0"
+license-file = "LICENSE.md"
+readme = "README.md"
+authors = ["starfleetcadet75 <starfleetcadet75@gmail.com>"]
+
+[lib]
+name = "rdbg_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rdbg"
+path = "src/bin/rdbg/main.rs"
+
+[dependencies]
+rustyline = "1.0.0"
+simplelog = "^0.4.2"
+clap = "~2.19.0"
+log = "0.3.8"
+nix = "0.9.0"
+libc = "0.2"
