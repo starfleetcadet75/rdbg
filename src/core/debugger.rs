@@ -29,7 +29,10 @@ impl Debugger {
     pub fn execute_target(&mut self, program: &Path, args: &[&str]) -> Result<(), Box<Error>> {
         match fork()? {
             ForkResult::Parent { child } => {
-                debug!("Continuing execution in parent process, new child has pid: {}", child);
+                debug!(
+                    "Continuing execution in parent process, new child has pid: {}",
+                    child
+                );
                 self.attach_target(child)
             }
             ForkResult::Child => {
@@ -37,9 +40,9 @@ impl Debugger {
 
                 let program_as_cstring = &CString::new(program.to_str().unwrap()).unwrap();
                 ptrace_wrapper::trace_me();
-                execve(program_as_cstring, &[], &[])
-                    .ok()
-                    .expect("execve() operation failed");
+                execve(program_as_cstring, &[], &[]).ok().expect(
+                    "execve() operation failed",
+                );
                 unreachable!();
             }
         }
@@ -72,8 +75,5 @@ impl Debugger {
         println!("RIP: {:?}", format!("{:#x}", rip));
     }
 
-    fn set_breakpoint_at(&self, address: u64) {
-
-    }
+    fn set_breakpoint_at(&self, address: u64) {}
 }
-

@@ -10,8 +10,12 @@ use std::error::Error;
 use super::super::InferiorPid;
 
 pub fn trace_me() {
-    ptrace(PTRACE_TRACEME, InferiorPid::from_raw(0), ptr::null_mut(), ptr::null_mut())
-        .ok()
+    ptrace(
+        PTRACE_TRACEME,
+        InferiorPid::from_raw(0),
+        ptr::null_mut(),
+        ptr::null_mut(),
+    ).ok()
         .expect("PTRACE_TRACEME failed");
 }
 

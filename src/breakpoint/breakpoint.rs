@@ -18,13 +18,9 @@ impl Breakpoint {
         }
     }
 
-    pub fn enable(&self) {
+    pub fn enable(&self) {}
 
-    }
-
-    pub fn disable(&self) {
-
-    }
+    pub fn disable(&self) {}
 
     pub fn is_enabled(&self) -> bool {
         self.enabled

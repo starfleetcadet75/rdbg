@@ -32,7 +32,10 @@ impl CommandInterpreter {
         rl.set_completer(Some(completer));
 
         if let Err(_) = rl.load_history(history_file) {
-            info!("No previous command history file found at: {}", history_file);
+            info!(
+                "No previous command history file found at: {}",
+                history_file
+            );
         }
 
         loop {
@@ -43,20 +46,22 @@ impl CommandInterpreter {
                     rl.add_history_entry(&line);
 
                     let v: Vec<&str> = line.split(' ').collect();
-                    if v[0] == "quit" { 
-                        break; 
+                    if v[0] == "quit" {
+                        break;
                     }
 
                     if v[0] == "help" {
                         self.command_help(&v);
-                    }
-                    else {
+                    } else {
                         self.handle_command(&v);
                     }
-                },
-                Err(ReadlineError::Interrupted) => { break },  // Handle Ctrl-C
-                Err(ReadlineError::Eof) => { break },  // Handle Ctrl-D
-                Err(err) => { error!("Unknown Error (Rustyline): {:?}", err); break },
+                }
+                Err(ReadlineError::Interrupted) => break,  // Handle Ctrl-C
+                Err(ReadlineError::Eof) => break,  // Handle Ctrl-D
+                Err(err) => {
+                    error!("Unknown Error (Rustyline): {:?}", err);
+                    break;
+                }
             }
         }
         rl.save_history(history_file).unwrap();
@@ -64,14 +69,11 @@ impl CommandInterpreter {
     }
 
     fn handle_command(&mut self, cmd: &[&str]) {
-        // add check for help along with function to split the line
-
         let args = &cmd[1..];
         if let Some(cmd) = self.commands.get(cmd[0]) {
             let status = (cmd.execute)(args, &mut self.debugger);
             println!("{}", status);
-        }
-        else {
+        } else {
             self.handle_unknown_command(cmd[0]);
         }
     }
@@ -79,11 +81,9 @@ impl CommandInterpreter {
     fn command_help(&self, args: &[&str]) {
         if args.len() == 1 {
             println!("This is the help message");
-        }
-        else if let Some(cmd) = self.commands.get(args[1]) {
+        } else if let Some(cmd) = self.commands.get(args[1]) {
             println!("{}", cmd.help);
-        }
-        else {
+        } else {
             self.handle_unknown_command(args[1]);
         }
     }
@@ -92,4 +92,3 @@ impl CommandInterpreter {
         println!("Undefined command: \"{}\".  Try \"help\"", cmd);
     }
 }
-

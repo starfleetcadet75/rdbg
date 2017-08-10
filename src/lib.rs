@@ -1,6 +1,3 @@
-#[allow(dead_code)]
-
-
 #[macro_use]
 extern crate log;
 extern crate simplelog;
@@ -27,4 +24,3 @@ mod test {
         //assert_eq!(42, continue_execution(inferior));
     }
 }
-
