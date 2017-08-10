@@ -1,5 +1,3 @@
-use super::super::InferiorPid;
-
 use nix::sys::signal;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, ForkResult, Pid};
@@ -7,17 +5,22 @@ use nix::unistd::{execve, fork, ForkResult, Pid};
 use std::ffi::CString;
 use std::error::Error;
 use std::path::Path;
+use std::collections::HashMap;
 
+use super::super::InferiorPid;
+use super::super::breakpoint::breakpoint;
 use super::ptrace_wrapper;
 
 pub struct Debugger {
     pid: InferiorPid,
+    breakpoints: HashMap<u64, breakpoint::Breakpoint>,
 }
 
 impl Debugger {
     pub fn new() -> Debugger {
         Debugger {
             pid: InferiorPid::from_raw(0),
+            breakpoints: HashMap::new(),
         }
     }
 
@@ -51,6 +54,26 @@ impl Debugger {
             Ok(_) => panic!("Unexpected status in run_debugger"),
             Err(_) => panic!("Unhandled error in run_debugger"),
         }
+    }
+
+    pub fn continue_execution(&self) -> i8 {
+        debug!("Continuing execution...");
+        ptrace_wrapper::continue_execution(self.pid);
+
+        match waitpid(self.pid, None) {
+            Ok(WaitStatus::Exited(_, code)) => return code,
+            Ok(_) => panic!("Unexpected status in continue_execution"),
+            Err(_) => panic!("Unhandled error in continue_execution"),
+        }
+    }
+
+    fn print_rip(&self) {
+        let rip = ptrace_wrapper::get_instruction_pointer(self.pid).unwrap();
+        println!("RIP: {:?}", format!("{:#x}", rip));
+    }
+
+    fn set_breakpoint_at(&self, address: u64) {
+
     }
 }
 

@@ -14,15 +14,14 @@ pub struct CommandInterpreter {
 
 impl CommandInterpreter {
     pub fn new(debugger: debugger::Debugger) -> CommandInterpreter {
-        let interpreter = CommandInterpreter {
+        CommandInterpreter {
             debugger,
-        };
-        interpreter
+        }
     }
 
     pub fn read_line(&self) -> Result<(), Box<Error>> {
         let history_file = "/tmp/.rdbg_history";
-        debug!("Starting debugger...");
+        debug!("Starting debugger session");
 
         let mut rl = Editor::new().history_ignore_space(true);
         let completer = FilenameCompleter::new();
@@ -38,6 +37,10 @@ impl CommandInterpreter {
                 Ok(line) => {
                     rl.add_history_entry(&line);
                     debug!("User Command: {}", line);
+
+                    if line == "quit" { 
+                        break; 
+                    }
                     self.handle_command(&line);
                 },
                 Err(ReadlineError::Interrupted) => { break },  // Handle Ctrl-C
@@ -50,7 +53,12 @@ impl CommandInterpreter {
     }
 
     fn handle_command(&self, cmd: &str) {
-
+        if cmd == "continue" {
+            self.debugger.continue_execution();
+        }
+        else {
+            self.handle_unknown_command(cmd);
+        }
     }
 
     fn handle_unknown_command(&self, cmd: &str) {
