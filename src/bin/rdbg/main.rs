@@ -1,3 +1,4 @@
+extern crate fnv;
 #[macro_use]
 extern crate clap;
 #[macro_use]
@@ -57,7 +58,7 @@ fn main() {
     // TODO: Handle attaching to a process
 
     // start interpreter after starting the trace
-    let interpreter = command_interpreter::CommandInterpreter::new(dbg);
+    let mut interpreter = command_interpreter::CommandInterpreter::new(dbg);
     if let Err(error) = interpreter.read_line() {
         error!("Application Error: {}", error);
         process::exit(1);
