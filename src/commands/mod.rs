@@ -3,12 +3,39 @@ use fnv::FnvHashMap;
 use super::core::debugger;
 
 pub struct Command {
-    pub name: &'static str, // name of the command
-    pub help: &'static str, // help message
-    pub execute: fn(&[&str], &mut debugger::Debugger) -> i32, // execute fn with given arguments to the cmd
+    /// The name of the command.
+    pub name: &'static str,
+    // The help message to be printed by the help command.
+    pub help: &'static str,
+    // The function to be called when the command is entered.
+    pub execute: fn(&[&str], &mut debugger::Debugger) -> i32,
 }
 
 impl Command {
+    /// Creates and returns a `FnvHashMap` containing the builtin commands.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use std::path::Path;
+    /// # use rdbg_core::core::debugger;
+    /// use fnv::FnvHashMap;
+    /// use rdbg_core::commands;
+    ///
+    /// # let program = Path::new("./hello_world.bin");
+    /// # let mut dbg = debugger::Debugger::new();
+    ///
+    /// # if let Err(error) = dbg.execute_target(program, &[]) {
+    /// #    println!("Error: {}", error);
+    /// # }
+    ///
+    /// let commands: FnvHashMap<&'static str, commands::Command> = commands::Command::map();
+    /// if let Some(cmd) = commands.get("continue") {
+    ///     (cmd.execute)(&[], &mut dbg);
+    /// }
+    /// ```
     pub fn map() -> FnvHashMap<&'static str, Self> {
         let mut commands: FnvHashMap<&str, Self> =
             FnvHashMap::with_capacity_and_hasher(32, Default::default());

@@ -1,3 +1,18 @@
+//! The `rdbg_core` library contains the core functionality of the debugger.
+//! Custom clients can be written around the core.
+//!
+//! # Examples
+//!
+//! ```
+//! use std::path::Path;
+//! use debugger::Debugger;
+//!
+//! let program = Path::new("./hello_world.bin");
+//! let mut dbg = debugger::Debugger::new();
+//!
+//! dbg.execute_target(program, &[]) {
+//! dbg.continue_execution();
+//! ```
 #[macro_use]
 extern crate log;
 extern crate simplelog;
@@ -10,17 +25,3 @@ pub mod commands;
 mod breakpoint;
 
 pub type InferiorPid = nix::unistd::Pid;
-
-
-
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn it_can_exec() {
-        //let inferior = run(Path::new("/bin/echo"), &["42"]).unwrap();
-        //assert_eq!(42, continue_execution(inferior));
-    }
-}

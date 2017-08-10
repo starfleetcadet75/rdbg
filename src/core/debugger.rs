@@ -1,3 +1,5 @@
+//! The main `Debugger` module.
+//! This module contains the main interface for the core functionality.
 use nix::sys::signal;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, ForkResult, Pid};
@@ -17,6 +19,16 @@ pub struct Debugger {
 }
 
 impl Debugger {
+    /// Creates a new `Debugger`.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use rdbg_core::core::debugger;
+    /// let mut dbg = debugger::Debugger::new();
+    /// ```
     pub fn new() -> Debugger {
         Debugger {
             pid: InferiorPid::from_raw(0),
@@ -24,8 +36,24 @@ impl Debugger {
         }
     }
 
-    // Starts debugging the target program given by the program path,
-    // uses any args specified.
+    /// Starts debugging of the target given by the program path.
+    /// Passes any arguments given as parameters as arguments to the new program.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use std::path::Path;
+    /// use rdbg_core::core::debugger;
+    ///
+    /// let program = Path::new("./hello_world.bin");
+    /// let mut dbg = debugger::Debugger::new();
+    ///
+    /// if let Err(error) = dbg.execute_target(program, &[]) {
+    ///    println!("Error: {}", error);
+    /// }
+    /// ```
     pub fn execute_target(&mut self, program: &Path, args: &[&str]) -> Result<(), Box<Error>> {
         match fork()? {
             ForkResult::Parent { child } => {
@@ -48,7 +76,21 @@ impl Debugger {
         }
     }
 
-    // Attempts to attach the debugger to the running process with the given pid.
+    /// Attempts to attach the debugger to the running process with the given pid.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// use rdbg_core::core::debugger;
+    ///
+    /// let mut dbg = debugger::Debugger::new();
+    ///
+    /// if let Err(error) = dbg.attach_target(1000, &[]) {
+    ///    println!("Error: {}", error);
+    /// }
+    /// ```
     pub fn attach_target(&mut self, pid: InferiorPid) -> Result<(), Box<Error>> {
         self.pid = pid;
 
