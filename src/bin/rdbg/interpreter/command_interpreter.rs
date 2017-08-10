@@ -40,17 +40,18 @@ impl CommandInterpreter {
             match readline {
                 Ok(line) => {
                     debug!("User Command: {}", line);
-
                     rl.add_history_entry(&line);
-                    if line == "quit" { 
+
+                    let v: Vec<&str> = line.split(' ').collect();
+                    if v[0] == "quit" { 
                         break; 
                     }
 
-                    if line == "help" {
-                        self.command_help(&[]);
+                    if v[0] == "help" {
+                        self.command_help(&v);
                     }
                     else {
-                        self.handle_command(&line);
+                        self.handle_command(&v);
                     }
                 },
                 Err(ReadlineError::Interrupted) => { break },  // Handle Ctrl-C
@@ -62,26 +63,28 @@ impl CommandInterpreter {
         Ok(())
     }
 
-    fn handle_command(&mut self, cmd: &str) {
+    fn handle_command(&mut self, cmd: &[&str]) {
         // add check for help along with function to split the line
-        if let Some(cmd) = self.commands.get(cmd) {
-            let status = (cmd.execute)(&[], &mut self.debugger);
+
+        let args = &cmd[1..];
+        if let Some(cmd) = self.commands.get(cmd[0]) {
+            let status = (cmd.execute)(args, &mut self.debugger);
             println!("{}", status);
         }
         else {
-            self.handle_unknown_command(cmd);
+            self.handle_unknown_command(cmd[0]);
         }
     }
 
     fn command_help(&self, args: &[&str]) {
-        if args.len() == 0 {
+        if args.len() == 1 {
             println!("This is the help message");
         }
-        else if let Some(cmd) = self.commands.get(args[0]) {
+        else if let Some(cmd) = self.commands.get(args[1]) {
             println!("{}", cmd.help);
         }
         else {
-            self.handle_unknown_command(args[0]);
+            self.handle_unknown_command(args[1]);
         }
     }
 
