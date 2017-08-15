@@ -112,6 +112,17 @@ impl Debugger {
         }
     }
 
+    /// Reads a word from the process memory at the given address.
+    pub fn read_memory(address: Address) -> i64 {
+        ptrace_wrapper::peek_data(self.pid, address)
+    }
+
+    /// Writes a word with the given value to the process memory
+    /// at the given address.
+    pub fn write_memory(address: Address, value: i64) {
+        ptrace_wrapper::poke_data(self.pid, address, value);
+    }
+
     fn print_rip(&self) {
         let rip = ptrace_wrapper::get_instruction_pointer(self.pid).unwrap();
         println!("RIP: {:?}", format!("{:#x}", rip));
