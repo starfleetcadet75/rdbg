@@ -2,7 +2,7 @@
 //! This module contains the main interface for the core functionality.
 use nix::sys::signal;
 use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execve, fork, ForkResult, Pid};
+use nix::unistd::{execve, fork, ForkResult};
 
 use std::path::Path;
 use std::error::Error;
@@ -10,11 +10,11 @@ use std::ffi::CString;
 use fnv::FnvHashMap;
 
 use super::ptrace_wrapper;
-use super::super::InferiorPid;
+use super::super::{Pid, Address};
 use super::super::breakpoint::breakpoint;
 
 pub struct Debugger {
-    pid: InferiorPid,
+    pid: Pid,
     breakpoints: FnvHashMap<u64, breakpoint::Breakpoint>,
 }
 
@@ -31,7 +31,7 @@ impl Debugger {
     /// ```
     pub fn new() -> Debugger {
         Debugger {
-            pid: InferiorPid::from_raw(0),
+            pid: Pid::from_raw(0),
             breakpoints: FnvHashMap::default(),
         }
     }
@@ -91,7 +91,7 @@ impl Debugger {
     ///    println!("Error: {}", error);
     /// }
     /// ```
-    pub fn attach_target(&mut self, pid: InferiorPid) -> Result<(), Box<Error>> {
+    pub fn attach_target(&mut self, pid: Pid) -> Result<(), Box<Error>> {
         self.pid = pid;
 
         match waitpid(pid, None) {
@@ -117,9 +117,9 @@ impl Debugger {
         println!("RIP: {:?}", format!("{:#x}", rip));
     }
 
-    pub fn set_breakpoint_at(&mut self, address: u64) {
+    pub fn set_breakpoint_at(&mut self, address: Address) {
         self.breakpoints.insert(
-            address,
+            address.0,
             breakpoint::Breakpoint::new(
                 self.pid,
                 address,

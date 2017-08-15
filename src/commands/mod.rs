@@ -2,6 +2,7 @@ use fnv::FnvHashMap;
 
 use std::str::FromStr;
 
+use super::Address;
 use super::core::debugger;
 
 pub struct Command {
@@ -92,6 +93,6 @@ fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
     }
 
     let address = u64::from_str_radix(args[0], 16).unwrap();
-    dbg.set_breakpoint_at(address);
+    dbg.set_breakpoint_at(Address(address));
     0
 }

@@ -24,4 +24,16 @@ pub mod core;
 pub mod commands;
 mod breakpoint;
 
-pub type InferiorPid = nix::unistd::Pid;
+use libc::c_void;
+
+pub type Pid = nix::unistd::Pid;
+
+#[derive(Debug, Copy, Clone)]
+pub struct Address(pub u64);
+
+impl Address {
+    pub fn as_void_ptr(&self) -> * mut c_void {
+        let &Address(addr) = self;
+        addr as * mut c_void
+    }
+}

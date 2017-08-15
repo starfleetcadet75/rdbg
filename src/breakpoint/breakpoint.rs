@@ -1,16 +1,16 @@
-use super::super::InferiorPid;
+use super::super::{Pid, Address};
 use super::super::core::ptrace_wrapper;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Breakpoint {
-    pid: InferiorPid,
-    address: u64,
+    pid: Pid,
+    address: Address,
     enabled: bool,
     stored_word: i64,
 }
 
 impl Breakpoint {
-    pub fn new(pid: InferiorPid, address: u64) -> Breakpoint {
+    pub fn new(pid: Pid, address: Address) -> Breakpoint {
         let mut bp = Breakpoint {
             pid: pid,
             address: address,
@@ -42,7 +42,7 @@ impl Breakpoint {
         self.enabled
     }
 
-    pub fn get_address(&self) -> u64 {
+    pub fn get_address(&self) -> Address {
         self.address
     }
 }
