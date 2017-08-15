@@ -5,8 +5,8 @@ use fnv::FnvHashMap;
 
 use std::error::Error;
 
-use rdbg_core::core::debugger;
 use rdbg_core::commands;
+use rdbg_core::core::debugger;
 
 static PROMPT: &'static str = "\x1b[1;32mrdbg>\x1b[0m ";
 

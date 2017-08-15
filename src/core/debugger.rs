@@ -4,18 +4,18 @@ use nix::sys::signal;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, ForkResult, Pid};
 
-use std::ffi::CString;
-use std::error::Error;
 use std::path::Path;
-use std::collections::HashMap;
+use std::error::Error;
+use std::ffi::CString;
+use fnv::FnvHashMap;
 
+use super::ptrace_wrapper;
 use super::super::InferiorPid;
 use super::super::breakpoint::breakpoint;
-use super::ptrace_wrapper;
 
 pub struct Debugger {
     pid: InferiorPid,
-    breakpoints: HashMap<u64, breakpoint::Breakpoint>,
+    breakpoints: FnvHashMap<u64, breakpoint::Breakpoint>,
 }
 
 impl Debugger {
@@ -32,7 +32,7 @@ impl Debugger {
     pub fn new() -> Debugger {
         Debugger {
             pid: InferiorPid::from_raw(0),
-            breakpoints: HashMap::new(),
+            breakpoints: FnvHashMap::default(),
         }
     }
 
@@ -117,5 +117,13 @@ impl Debugger {
         println!("RIP: {:?}", format!("{:#x}", rip));
     }
 
-    fn set_breakpoint_at(&self, address: u64) {}
+    pub fn set_breakpoint_at(&mut self, address: u64) {
+        self.breakpoints.insert(
+            address,
+            breakpoint::Breakpoint::new(
+                self.pid,
+                address,
+            ),
+        );
+    }
 }

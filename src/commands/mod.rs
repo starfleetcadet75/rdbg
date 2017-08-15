@@ -1,5 +1,7 @@
 use fnv::FnvHashMap;
 
+use std::str::FromStr;
+
 use super::core::debugger;
 
 pub struct Command {
@@ -61,6 +63,12 @@ impl Command {
             command_continue
         );
 
+        insert_command!(
+            "break",
+            "Set breakpoint at specified location.",
+            command_break
+        );
+
         // break [address]
         // run [arglist]
         // bt
@@ -73,5 +81,17 @@ impl Command {
 fn command_continue(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
     info!("Calling continue command");
     dbg.continue_execution();
+    0
+}
+
+fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
+    info!("Calling break command");
+    if args.len() < 1 {
+        error!("No address given");
+        return 1;
+    }
+
+    let address = u64::from_str_radix(args[0], 16).unwrap();
+    dbg.set_breakpoint_at(address);
     0
 }

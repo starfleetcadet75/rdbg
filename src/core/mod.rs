@@ -1,2 +1,2 @@
 pub mod debugger;
-mod ptrace_wrapper;
+pub mod ptrace_wrapper;
