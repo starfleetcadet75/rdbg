@@ -1,5 +1,7 @@
 use fnv::FnvHashMap;
 
+use std::str::FromStr;
+
 use super::Address;
 use super::core::debugger;
 use super::core::arch::{Arch, Register};
@@ -70,9 +72,15 @@ impl Command {
         );
 
         insert_command!(
-            "rip",
-            "",
-            command_rip
+            "print",
+            "Print value of expression EXP.",
+            command_print
+        );
+
+        insert_command!(
+            "memory",
+            "Read or write to process memory",
+            command_memory
         );
 
         // break [address]
@@ -100,13 +108,24 @@ fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
         return 1;
     }
 
-    let address = u64::from_str_radix(args[0], 16).unwrap();
-    dbg.set_breakpoint_at(Address(address));
+    let address = Address::from_str_radix(args[0], 16).unwrap();
+    dbg.set_breakpoint_at(address);
     0
 }
 
-fn command_rip(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
+fn command_print(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
     println!("RIP: {:?}", format!("{:#x}", dbg.get_register_value(Register::Rip)));
     0
 }
 
+fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
+    if args[0] == "read" {
+        let address = Address::from_str(args[1]).unwrap();
+        println!("{:?}", format!("{:#x}", dbg.read_memory(address).unwrap()));
+    }
+
+    if args[0] == "write" {
+        dbg.write_memory(Address::from_str(args[1]).unwrap(), i64::from_str(args[2]).unwrap());
+    }
+    0
+}

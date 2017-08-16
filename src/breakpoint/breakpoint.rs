@@ -54,13 +54,13 @@ impl Breakpoint {
 
     fn read_memory(&self, address: Address) -> nix::Result<i64> {
         unsafe {
-            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address.as_void_ptr(), ptr::null_mut())
+            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address as *mut c_void, ptr::null_mut())
         }
     }
 
     fn write_memory(&self, address: Address, data: i64) {
         unsafe {
-            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address.as_void_ptr(), data as *mut c_void).ok();
+            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address as *mut c_void, data as *mut c_void).ok();
         }
     }
 }

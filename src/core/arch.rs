@@ -48,6 +48,8 @@ impl fmt::Display for Register {
 pub trait Arch {
     fn get_register_value(&self, register: Register) -> u64;
     fn set_register_value(&self, register: Register, data: u64);
+    fn get_pc(&self) -> u64;
+    fn set_pc(&self, data: u64);
 }
 
 impl Arch for Debugger {
@@ -130,5 +132,13 @@ impl Arch for Debugger {
             }
             ptrace::ptrace(PTRACE_SETREGS, self.pid, ptr::null_mut(), register_ptr).ok();
         }
+    }
+
+    fn get_pc(&self) -> u64 {
+        self.get_register_value(Register::Rip)
+    }
+
+    fn set_pc(&self, data: u64) {
+        self.set_register_value(Register::Rip, data);
     }
 }

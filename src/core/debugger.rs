@@ -6,7 +6,7 @@ use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, ForkResult};
-use libc::{user_regs_struct, c_void};
+use libc::c_void;
 
 use std::ptr;
 use std::path::Path;
@@ -14,12 +14,13 @@ use std::error::Error;
 use std::ffi::CString;
 use fnv::FnvHashMap;
 
+use super::arch::Arch;
 use super::super::{Pid, Address};
 use super::super::breakpoint::breakpoint;
 
 pub struct Debugger {
     pub pid: Pid,
-    breakpoints: FnvHashMap<u64, breakpoint::Breakpoint>,
+    breakpoints: FnvHashMap<Address, breakpoint::Breakpoint>,
 }
 
 impl Debugger {
@@ -105,23 +106,17 @@ impl Debugger {
         }
     }
 
-    pub fn continue_execution(&self) -> i8 {
+    pub fn continue_execution(&mut self) {
         debug!("Continuing execution...");
+        //self.step_over_breakpoint();
         ptrace::cont(self.pid, None).ok();
-
-        match waitpid(self.pid, None) {
-            Ok(WaitStatus::Exited(_, code)) => return code,
-            Ok(_) => panic!("Unexpected status in continue_execution"),
-            Err(_) => panic!("Unhandled error in continue_execution"),
-        }
+        self.wait_for_signal().ok();
     }
-
-    
 
     /// Reads a word from the process memory at the given address.
     pub fn read_memory(&self, address: Address) -> nix::Result<i64> {
         unsafe {
-            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address.as_void_ptr(), ptr::null_mut())
+            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address as *mut c_void, ptr::null_mut())
         }
     }
 
@@ -129,17 +124,69 @@ impl Debugger {
     /// at the given address.
     pub fn write_memory(&self, address: Address, data: i64) {
         unsafe {
-            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address.as_void_ptr(), data as *mut c_void).ok();
+            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address as *mut c_void, data as *mut c_void).ok();
         }
     }
 
     pub fn set_breakpoint_at(&mut self, address: Address) {
         self.breakpoints.insert(
-            address.0,
+            address,
             breakpoint::Breakpoint::new(
                 self.pid,
                 address,
             ),
         );
+    }
+
+    pub fn remove_breakpoint(&mut self, address: Address) {
+        self.breakpoints.remove(&address);
+    }
+
+    pub fn single_step(&self) {
+        unsafe {
+            ptrace::ptrace(PTRACE_SINGLESTEP, self.pid, ptr::null_mut(), ptr::null_mut()).ok();
+        }
+        self.wait_for_signal().ok();
+    }
+
+    //fn step_over_breakpoint(&mut self) {
+    //    let possible_bp_location = self.get_pc() - 1;
+
+    //    // check if a breakpoint exists at the current instruction
+    //    if self.breakpoints.contains_key(&possible_bp_location) {
+    //        let mut bp = self.breakpoints.entry(possible_bp_location);
+    //        if bp.is_enabled() {
+    //            let prev_instr_address = possible_bp_location;
+    //            self.set_pc(prev_instr_address);
+
+    //            // disable the breakpoint to step over it
+    //            bp.disable();
+    //            self.single_step();
+    //            bp.enable();
+    //        }
+    //    }
+    //}
+
+    fn wait_for_signal(&self) -> Result<(), Box<Error>> {
+        match waitpid(self.pid, None) {
+            Ok(WaitStatus::Exited(_, code)) => {
+                info!("WaitStatus: Exited with status: {}", code);
+                Ok(())
+            },
+            Ok(WaitStatus::Signaled(_, signal, core_dump)) => {
+                info!("WaitStatus: Process killed by signal: {:?}, core dumped?: {}", signal, core_dump);
+                Ok(())
+            },
+            Ok(WaitStatus::Stopped(_, signal::SIGTRAP)) => {
+                info!("WaitStatus: Stopped by signal");
+                Ok(())
+            },
+            Ok(WaitStatus::Continued(_)) => {
+                info!("WaitStatus: Continued");
+                Ok(())
+            },
+            Ok(_) => panic!("Unknown waitstatus"),
+            Err(_) => panic!("Unhandled error in wait_for_signal()"),
+        }
     }
 }
