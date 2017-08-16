@@ -1,2 +1,2 @@
 pub mod debugger;
-pub mod ptrace_wrapper;
+pub mod arch;

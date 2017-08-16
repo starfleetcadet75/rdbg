@@ -1,20 +1,24 @@
 //! The main `Debugger` module.
 //! This module contains the main interface for the core functionality.
+use nix;
 use nix::sys::signal;
+use nix::sys::ptrace;
+use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, ForkResult};
+use libc::{user_regs_struct, c_void};
 
+use std::ptr;
 use std::path::Path;
 use std::error::Error;
 use std::ffi::CString;
 use fnv::FnvHashMap;
 
-use super::ptrace_wrapper;
 use super::super::{Pid, Address};
 use super::super::breakpoint::breakpoint;
 
 pub struct Debugger {
-    pid: Pid,
+    pub pid: Pid,
     breakpoints: FnvHashMap<u64, breakpoint::Breakpoint>,
 }
 
@@ -67,7 +71,7 @@ impl Debugger {
                 debug!("Executing new child process");
 
                 let program_as_cstring = &CString::new(program.to_str().unwrap()).unwrap();
-                ptrace_wrapper::trace_me();
+                ptrace::traceme().ok();
                 execve(program_as_cstring, &[], &[]).ok().expect(
                     "execve() operation failed",
                 );
@@ -95,7 +99,7 @@ impl Debugger {
         self.pid = pid;
 
         match waitpid(pid, None) {
-            Ok(WaitStatus::Stopped(pid, signal::SIGTRAP)) => Ok(()),
+            Ok(WaitStatus::Stopped(_, signal::SIGTRAP)) => Ok(()),
             Ok(_) => panic!("Unexpected status in run_debugger"),
             Err(_) => panic!("Unhandled error in run_debugger"),
         }
@@ -103,7 +107,7 @@ impl Debugger {
 
     pub fn continue_execution(&self) -> i8 {
         debug!("Continuing execution...");
-        ptrace_wrapper::continue_execution(self.pid);
+        ptrace::cont(self.pid, None).ok();
 
         match waitpid(self.pid, None) {
             Ok(WaitStatus::Exited(_, code)) => return code,
@@ -112,20 +116,21 @@ impl Debugger {
         }
     }
 
+    
+
     /// Reads a word from the process memory at the given address.
-    pub fn read_memory(address: Address) -> i64 {
-        ptrace_wrapper::peek_data(self.pid, address)
+    pub fn read_memory(&self, address: Address) -> nix::Result<i64> {
+        unsafe {
+            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address.as_void_ptr(), ptr::null_mut())
+        }
     }
 
     /// Writes a word with the given value to the process memory
     /// at the given address.
-    pub fn write_memory(address: Address, value: i64) {
-        ptrace_wrapper::poke_data(self.pid, address, value);
-    }
-
-    fn print_rip(&self) {
-        let rip = ptrace_wrapper::get_instruction_pointer(self.pid).unwrap();
-        println!("RIP: {:?}", format!("{:#x}", rip));
+    pub fn write_memory(&self, address: Address, data: i64) {
+        unsafe {
+            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address.as_void_ptr(), data as *mut c_void).ok();
+        }
     }
 
     pub fn set_breakpoint_at(&mut self, address: Address) {

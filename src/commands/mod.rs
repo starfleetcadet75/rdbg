@@ -1,9 +1,8 @@
 use fnv::FnvHashMap;
 
-use std::str::FromStr;
-
 use super::Address;
 use super::core::debugger;
+use super::core::arch::{Arch, Register};
 
 pub struct Command {
     /// The name of the command.
@@ -70,6 +69,12 @@ impl Command {
             command_break
         );
 
+        insert_command!(
+            "rip",
+            "",
+            command_rip
+        );
+
         // break [address]
         // run [arglist]
         // bt
@@ -79,6 +84,9 @@ impl Command {
     }
 }
 
+//
+// TODO: Make these return JSON objects
+//
 fn command_continue(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
     info!("Calling continue command");
     dbg.continue_execution();
@@ -96,3 +104,9 @@ fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
     dbg.set_breakpoint_at(Address(address));
     0
 }
+
+fn command_rip(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
+    println!("RIP: {:?}", format!("{:#x}", dbg.get_register_value(Register::Rip)));
+    0
+}
+

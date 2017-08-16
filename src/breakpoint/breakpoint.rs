@@ -1,5 +1,11 @@
+use nix;
+use nix::sys::ptrace;
+use nix::sys::ptrace::ptrace::*;
+use libc::c_void;
+
+use std::ptr;
+
 use super::super::{Pid, Address};
-use super::super::core::ptrace_wrapper;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Breakpoint {
@@ -22,19 +28,19 @@ impl Breakpoint {
     }
 
     pub fn enable(&mut self) {
-        self.stored_word = ptrace_wrapper::peek_data(self.pid, self.address);
+        self.stored_word = self.read_memory(self.address).unwrap();
         let mut data = self.stored_word; // save the current word before setting the int3
         data &= !0xff; // bitmask out the byte to change
         data |= 0xcc; // set the int3 instruction
-        ptrace_wrapper::poke_data(self.pid, self.address, data);
+        self.write_memory(self.address, data);
         self.enabled = true;
     }
 
     pub fn disable(&mut self) {
-        let mut data = ptrace_wrapper::peek_data(self.pid, self.address);
+        let mut data = self.read_memory(self.address).unwrap();
         data &= !0xff;
         data |= self.stored_word;
-        ptrace_wrapper::poke_data(self.pid, self.address, data);
+        self.write_memory(self.address, data);
         self.enabled = false;
     }
 
@@ -44,5 +50,17 @@ impl Breakpoint {
 
     pub fn get_address(&self) -> Address {
         self.address
+    }
+
+    fn read_memory(&self, address: Address) -> nix::Result<i64> {
+        unsafe {
+            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address.as_void_ptr(), ptr::null_mut())
+        }
+    }
+
+    fn write_memory(&self, address: Address, data: i64) {
+        unsafe {
+            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address.as_void_ptr(), data as *mut c_void).ok();
+        }
     }
 }
