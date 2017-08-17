@@ -6,6 +6,7 @@ use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{execve, fork, ForkResult};
+use libc;
 use libc::c_void;
 
 use std::ptr;
@@ -142,7 +143,7 @@ impl Debugger {
         self.breakpoints.remove(&address);
     }
 
-    pub fn single_step(&self) {
+    pub fn single_step_instruction(&self) {
         unsafe {
             ptrace::ptrace(PTRACE_SINGLESTEP, self.pid, ptr::null_mut(), ptr::null_mut()).ok();
         }
@@ -161,7 +162,7 @@ impl Debugger {
 
     //            // disable the breakpoint to step over it
     //            bp.disable();
-    //            self.single_step();
+    //            self.single_step_instruction();
     //            bp.enable();
     //        }
     //    }
@@ -177,9 +178,22 @@ impl Debugger {
                 info!("WaitStatus: Process killed by signal: {:?}, core dumped?: {}", signal, core_dump);
                 Ok(())
             },
-            Ok(WaitStatus::Stopped(_, signal::SIGTRAP)) => {
-                info!("WaitStatus: Stopped by signal");
-                Ok(())
+            Ok(WaitStatus::Stopped(_, _)) => {
+                match ptrace::getsiginfo(self.pid) {
+                    Ok(siginfo) if siginfo.si_signo == libc::SIGTRAP => {
+                        debug!("Recieved SIGTRAP");
+                        Ok(())
+                    },
+                    Ok(siginfo) if siginfo.si_signo == libc::SIGSEGV => {
+                        debug!("Recieved SIGSEGV, reason: {}", siginfo.si_code);
+                        Ok(())
+                    },
+                    Ok(siginfo) => {
+                        debug!("Recieved {}", siginfo.si_signo);
+                        Ok(())
+                    },
+                    Err(_) => panic!("Error getting signal"),
+                }
             },
             Ok(WaitStatus::Continued(_)) => {
                 info!("WaitStatus: Continued");
