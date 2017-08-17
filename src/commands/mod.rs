@@ -79,14 +79,15 @@ impl Command {
 
         insert_command!(
             "memory",
-            "Read or write to process memory",
+            "Read or write to process memory.",
             command_memory
         );
 
-        // break [address]
-        // run [arglist]
-        // bt
-        // step
+        insert_command!(
+            "stepi",
+            "Step one instruction exactly.",
+            command_stepi
+        );
 
         commands
     }
@@ -127,5 +128,10 @@ fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
     if args[0] == "write" {
         dbg.write_memory(Address::from_str(args[1]).unwrap(), i64::from_str(args[2]).unwrap());
     }
+    0
+}
+
+fn command_stepi(args: &[&str], dbg: &mut debugger::Debugger) -> i32 {
+    dbg.single_step_instruction_with_breakpoints();
     0
 }

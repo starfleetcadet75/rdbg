@@ -108,8 +108,9 @@ impl Debugger {
     }
 
     pub fn continue_execution(&mut self) {
-        debug!("Continuing execution...");
-        //self.step_over_breakpoint();
+        if self.breakpoints.contains_key(&self.get_pc()) {
+            self.step_over_breakpoint();
+        }
         ptrace::cont(self.pid, None).ok();
         self.wait_for_signal().ok();
     }
@@ -117,7 +118,12 @@ impl Debugger {
     /// Reads a word from the process memory at the given address.
     pub fn read_memory(&self, address: Address) -> nix::Result<i64> {
         unsafe {
-            ptrace::ptrace(PTRACE_PEEKDATA, self.pid, address as *mut c_void, ptr::null_mut())
+            ptrace::ptrace(
+                PTRACE_PEEKDATA,
+                self.pid,
+                address as *mut c_void,
+                ptr::null_mut(),
+            )
         }
     }
 
@@ -125,7 +131,12 @@ impl Debugger {
     /// at the given address.
     pub fn write_memory(&self, address: Address, data: i64) {
         unsafe {
-            ptrace::ptrace(PTRACE_POKEDATA, self.pid, address as *mut c_void, data as *mut c_void).ok();
+            ptrace::ptrace(
+                PTRACE_POKEDATA,
+                self.pid,
+                address as *mut c_void,
+                data as *mut c_void,
+            ).ok();
         }
     }
 
@@ -143,64 +154,92 @@ impl Debugger {
         self.breakpoints.remove(&address);
     }
 
-    pub fn single_step_instruction(&self) {
+    fn single_step_instruction(&self) {
         unsafe {
-            ptrace::ptrace(PTRACE_SINGLESTEP, self.pid, ptr::null_mut(), ptr::null_mut()).ok();
+            ptrace::ptrace(
+                PTRACE_SINGLESTEP,
+                self.pid,
+                ptr::null_mut(),
+                ptr::null_mut(),
+            ).ok();
+            self.wait_for_signal().ok();
         }
-        self.wait_for_signal().ok();
     }
 
-    //fn step_over_breakpoint(&mut self) {
-    //    let possible_bp_location = self.get_pc() - 1;
+    pub fn single_step_instruction_with_breakpoints(&mut self) {
+        if self.breakpoints.contains_key(&self.get_pc()) {
+            self.step_over_breakpoint();
+        } else {
+            self.single_step_instruction();
+        }
+    }
 
-    //    // check if a breakpoint exists at the current instruction
-    //    if self.breakpoints.contains_key(&possible_bp_location) {
-    //        let mut bp = self.breakpoints.entry(possible_bp_location);
-    //        if bp.is_enabled() {
-    //            let prev_instr_address = possible_bp_location;
-    //            self.set_pc(prev_instr_address);
-
-    //            // disable the breakpoint to step over it
-    //            bp.disable();
-    //            self.single_step_instruction();
-    //            bp.enable();
-    //        }
-    //    }
-    //}
+    fn step_over_breakpoint(&mut self) {
+        let pc = &self.get_pc();
+        let mut bp = *self.breakpoints.get_mut(pc).unwrap();
+        
+        if bp.is_enabled() {
+            bp.disable(); // disable the breakpoint to step over it
+            self.single_step_instruction();
+            bp.enable();
+        }
+    }
 
     fn wait_for_signal(&self) -> Result<(), Box<Error>> {
         match waitpid(self.pid, None) {
             Ok(WaitStatus::Exited(_, code)) => {
                 info!("WaitStatus: Exited with status: {}", code);
                 Ok(())
-            },
+            }
             Ok(WaitStatus::Signaled(_, signal, core_dump)) => {
-                info!("WaitStatus: Process killed by signal: {:?}, core dumped?: {}", signal, core_dump);
+                info!(
+                    "WaitStatus: Process killed by signal: {:?}, core dumped?: {}",
+                    signal,
+                    core_dump
+                );
                 Ok(())
-            },
+            }
             Ok(WaitStatus::Stopped(_, _)) => {
                 match ptrace::getsiginfo(self.pid) {
                     Ok(siginfo) if siginfo.si_signo == libc::SIGTRAP => {
                         debug!("Recieved SIGTRAP");
+                        self.handle_sigtrap(siginfo);
                         Ok(())
-                    },
+                    }
                     Ok(siginfo) if siginfo.si_signo == libc::SIGSEGV => {
                         debug!("Recieved SIGSEGV, reason: {}", siginfo.si_code);
                         Ok(())
-                    },
+                    }
                     Ok(siginfo) => {
                         debug!("Recieved {}", siginfo.si_signo);
                         Ok(())
-                    },
+                    }
                     Err(_) => panic!("Error getting signal"),
                 }
-            },
+            }
             Ok(WaitStatus::Continued(_)) => {
                 info!("WaitStatus: Continued");
                 Ok(())
-            },
+            }
             Ok(_) => panic!("Unknown waitstatus"),
             Err(_) => panic!("Unhandled error in wait_for_signal()"),
+        }
+    }
+
+    // TODO: nix/libc does not currently seem to support the values SI_KERNEL,
+    // TRAP_BRKPT, and TRAP_TRACE which are defined here '/usr/include/bits/siginfo.h'
+    // in libc for Linux. These are needed in order to handle the codes that come with
+    // a SIGTRAP signal. For now, 0x80 seems correct for handling breakpoints and 0x2
+    // seems to be the value for TRAP_TRACE, which does not require any handling.
+    fn handle_sigtrap(&self, siginfo: libc::siginfo_t) {
+        debug!("si_code: {:?}", siginfo.si_code);
+
+        if siginfo.si_code == 0x80 {
+            self.set_pc(self.get_pc() - 1); // move the pc back one instruction
+            info!(
+                "Hit breakpoint at address {:?}",
+                format!("{:#x}", self.get_pc())
+            );
         }
     }
 }

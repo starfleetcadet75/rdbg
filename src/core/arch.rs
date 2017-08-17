@@ -56,7 +56,7 @@ impl Arch for Debugger {
     fn get_register_value(&self, register: Register) -> u64 {
         // TODO: check if this fn is ever made public
         //let regs = ptrace::ptrace_get_data::<user_regs_struct>(PTRACE_GETREGS, pid);
-        //println!("regs: {:#?}", regs); 
+        //println!("regs: {:#?}", regs);
         let mut registers: user_regs_struct = unsafe { mem::zeroed() };
         let register_ptr: *mut c_void = &mut registers as *mut _ as *mut c_void;
 
@@ -117,7 +117,7 @@ impl Arch for Debugger {
                 Register::Rdx => registers.rdx = data,
                 Register::Rsi => registers.rsi = data,
                 Register::Rdi => registers.rdi = data,
-                Register::OrigRax => registers.orig_rax = data ,
+                Register::OrigRax => registers.orig_rax = data,
                 Register::Rip => registers.rip = data,
                 Register::Cs => registers.cs = data,
                 Register::Eflags => registers.eflags = data,
