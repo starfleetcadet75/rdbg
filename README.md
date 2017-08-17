@@ -1,5 +1,4 @@
 # rdbg
-[![Join the chat at https://gitter.im/starfleetcadet75/rdbg](https://badges.gitter.im/starfleetcadet75/rdbg.svg)](https://gitter.im/starfleetcadet75/rdbg?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/starfleetcadet75/rdbg.svg?branch=master)](https://travis-ci.org/starfleetcadet75/rdbg)
 [![Lines of Code](https://tokei.rs/b1/github/starfleetcadet75/rdbg)](https://github.com/starfleetcadet75/rdbg)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)]() 
