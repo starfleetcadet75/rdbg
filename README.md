@@ -21,9 +21,9 @@ See the [LICENSE file](LICENSE.md).
 
 ## References
 
-[ptrace man page](http://man7.org/linux/man-pages/man2/ptrace.2.html)
-[Writing a Linux Debugger](https://blog.tartanllama.xyz/writing-a-linux-debugger-setup.html)
-[Playing with ptrace](https://www.linuxjournal.com/article/6100)
-[Loading and ptrace'ing a process in Rust](http://system.joekain.com/2015/07/15/rust-load-and-ptrace.html)
-[nix-rust](https://github.com/nix-rust/nix)
-[gtrace](https://github.com/geofft/gtrace)
+[ptrace man page](http://man7.org/linux/man-pages/man2/ptrace.2.html)    
+[Writing a Linux Debugger](https://blog.tartanllama.xyz/writing-a-linux-debugger-setup.html)    
+[Playing with ptrace](https://www.linuxjournal.com/article/6100)    
+[Loading and ptrace'ing a process in Rust](http://system.joekain.com/2015/07/15/rust-load-and-ptrace.html)    
+[nix-rust](https://github.com/nix-rust/nix)    
+[gtrace](https://github.com/geofft/gtrace)    
