@@ -1,0 +1,23 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+
+branches:
+  only:
+    - master
+
+before_script:
+  - git config --global user.name "Travis bot"
+
+notifications:
+  email: false
+  webhooks:
+    urls: https://webhooks.gitter.im/e/
+    on_success: change
+    on_failure: always
+    on_start: never
