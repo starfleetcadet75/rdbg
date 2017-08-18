@@ -7,6 +7,8 @@
 
 A debugger written in Rust. See [FEATURES.md](FEATURES.md) for a complete list of supported features.
 
+_**NOTE:** rdbg is in the very early stages of development. This may or may not go anywhere._
+
 ## Build Instructions
 
 ```
