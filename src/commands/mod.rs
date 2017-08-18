@@ -17,29 +17,6 @@ pub struct Command {
 
 impl Command {
     /// Creates and returns a `FnvHashMap` containing the builtin commands.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    ///
-    /// ```
-    /// # use std::path::Path;
-    /// # use rdbg_core::core::debugger;
-    /// use fnv::FnvHashMap;
-    /// use rdbg_core::commands;
-    ///
-    /// # let program = Path::new("./hello_world.bin");
-    /// # let mut dbg = debugger::Debugger::new();
-    ///
-    /// # if let Err(error) = dbg.execute_target(program, &[]) {
-    /// #    println!("Error: {}", error);
-    /// # }
-    ///
-    /// let commands: FnvHashMap<&'static str, commands::Command> = commands::Command::map();
-    /// if let Some(cmd) = commands.get("continue") {
-    ///     (cmd.execute)(&[], &mut dbg);
-    /// }
-    /// ```
     pub fn map() -> FnvHashMap<&'static str, Self> {
         let mut commands: FnvHashMap<&str, Self> =
             FnvHashMap::with_capacity_and_hasher(32, Default::default());

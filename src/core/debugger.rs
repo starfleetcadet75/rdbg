@@ -1,7 +1,6 @@
 //! The main `Debugger` module.
 //! This module contains the main interface for the core functionality.
 use nix;
-use nix::sys::signal;
 use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{waitpid, WaitStatus};
@@ -67,7 +66,8 @@ impl Debugger {
                     "Continuing execution in parent process, new child has pid: {}",
                     child
                 );
-                self.attach_target(child)
+                self.pid = child;
+                self.wait_for_signal()
             }
             ForkResult::Child => {
                 debug!("Executing new child process");
@@ -90,21 +90,17 @@ impl Debugger {
     ///
     /// ```
     /// use rdbg_core::core::debugger;
+    /// use rdbg_core::Pid;
     ///
     /// let mut dbg = debugger::Debugger::new();
     ///
-    /// if let Err(error) = dbg.attach_target(1000, &[]) {
+    /// if let Err(error) = dbg.attach_target(Pid::from_raw(1000)) {
     ///    println!("Error: {}", error);
     /// }
     /// ```
-    pub fn attach_target(&mut self, pid: Pid) -> Result<(), Box<Error>> {
+    pub fn attach_target(&mut self, pid: Pid) -> nix::Result<()> {
         self.pid = pid;
-
-        match waitpid(pid, None) {
-            Ok(WaitStatus::Stopped(_, signal::SIGTRAP)) => Ok(()),
-            Ok(_) => panic!("Unexpected status in run_debugger"),
-            Err(_) => panic!("Unhandled error in run_debugger"),
-        }
+        ptrace::attach(pid)
     }
 
     pub fn continue_execution(&mut self) {
