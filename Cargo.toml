@@ -2,10 +2,13 @@
 name = "rdbg"
 description = "A debugger written in Rust"
 repository = "https://github.com/starfleetcadet75/rdbg"
+homepage = "https://github.com/starfleetcadet75/rdbg/"
+documentation = "http://starfleetcadet75.github.io/rdbg/"
 version = "0.1.0"
 license-file = "LICENSE.md"
 readme = "README.md"
 authors = ["starfleetcadet75 <starfleetcadet75@gmail.com>"]
+keywords = ["debugger", "gdb", "lldb"]
 
 [lib]
 name = "rdbg_core"

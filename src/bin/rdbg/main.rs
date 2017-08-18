@@ -14,9 +14,10 @@ use simplelog::{Config, TermLogger, WriteLogger, CombinedLogger, LogLevelFilter}
 
 use std::process;
 use std::fs::File;
-use std::path::Path;
+use std::path::PathBuf;
 
 use rdbg_core::core::debugger;
+use rdbg_core::core::program;
 use interpreter::command_interpreter;
 
 fn main() {
@@ -51,11 +52,13 @@ fn main() {
         ),
     ]).unwrap();
 
-    let program = &String::from(args.value_of("PROGRAM").unwrap());
-    let program = Path::new(program);
+    let path = &String::from(args.value_of("PROGRAM").unwrap());
+    let program = program::Program::new(&PathBuf::from(path));
 
     let mut dbg = debugger::Debugger::new();
-    if let Err(error) = dbg.execute_target(program, &[]) {
+    dbg.load_program(program);
+
+    if let Err(error) = dbg.execute_target() {
         error!("Application Error: {}", error);
         process::exit(1);
     }

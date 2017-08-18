@@ -9,17 +9,19 @@ use libc;
 use libc::c_void;
 
 use std::ptr;
-use std::path::Path;
+use std::path::PathBuf;
 use std::error::Error;
 use std::ffi::CString;
 use fnv::FnvHashMap;
 
 use super::arch::Arch;
+use super::program::Program;
 use super::super::{Pid, Address};
 use super::super::breakpoint::breakpoint;
 
 pub struct Debugger {
     pub pid: Pid,
+    program: Option<Program>,
     breakpoints: FnvHashMap<Address, breakpoint::Breakpoint>,
 }
 
@@ -37,6 +39,7 @@ impl Debugger {
     pub fn new() -> Debugger {
         Debugger {
             pid: Pid::from_raw(0),
+            program: None,
             breakpoints: FnvHashMap::default(),
         }
     }
@@ -49,36 +52,47 @@ impl Debugger {
     /// Basic usage:
     ///
     /// ```
-    /// use std::path::Path;
+    /// use std::path::PathBuf;
     /// use rdbg_core::core::debugger;
+    /// use rdbg_core::core::program;
     ///
-    /// let program = Path::new("./hello_world.bin");
+    /// let path = "./hello_world.bin";
+    /// let program = program::Program::new(&PathBuf::from(path));
+    ///
     /// let mut dbg = debugger::Debugger::new();
+    /// dbg.load_program(program);
     ///
-    /// if let Err(error) = dbg.execute_target(program, &[]) {
+    /// if let Err(error) = dbg.execute_target() {
     ///    println!("Error: {}", error);
     /// }
     /// ```
-    pub fn execute_target(&mut self, program: &Path, args: &[&str]) -> Result<(), Box<Error>> {
-        match fork()? {
-            ForkResult::Parent { child } => {
-                debug!(
-                    "Continuing execution in parent process, new child has pid: {}",
-                    child
-                );
-                self.pid = child;
-                self.wait_for_signal()
-            }
-            ForkResult::Child => {
-                debug!("Executing new child process");
+    pub fn execute_target(&mut self) -> Result<(), Box<Error>> {
+        match self.program {
+            Some(ref prog) => {
+                let path = prog.path.to_str().unwrap();
+                let program_as_cstring = &CString::new(path).unwrap();
 
-                let program_as_cstring = &CString::new(program.to_str().unwrap()).unwrap();
-                ptrace::traceme().ok();
-                execve(program_as_cstring, &[], &[]).ok().expect(
-                    "execve() operation failed",
-                );
-                unreachable!();
-            }
+                match fork()? {
+                    ForkResult::Parent { child } => {
+                        debug!(
+                            "Continuing execution in parent process, new child has pid: {}",
+                            child
+                            );
+                        self.pid = child;
+                        self.wait_for_signal()
+                    }
+                    ForkResult::Child => {
+                        debug!("Executing new child process");
+
+                        ptrace::traceme().ok();
+                        execve(program_as_cstring, &[], &[]).ok().expect(
+                            "execve() operation failed",
+                            );
+                        unreachable!();
+                    }
+                }
+            },
+            None => panic!("There is no file loaded."),
         }
     }
 
@@ -101,6 +115,11 @@ impl Debugger {
     pub fn attach_target(&mut self, pid: Pid) -> nix::Result<()> {
         self.pid = pid;
         ptrace::attach(pid)
+    }
+
+    pub fn load_program(&mut self, program: Program) {
+        self.program = Some(program);
+        // TODO: load ELF and DWARF info here
     }
 
     pub fn continue_execution(&mut self) {
