@@ -6,6 +6,7 @@ use std::{ptr, mem};
 use std::fmt::{self, Debug, Display};
 
 use super::debugger::Debugger;
+use super::super::util::error::RdbgResult;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Register {
@@ -46,14 +47,15 @@ impl fmt::Display for Register {
 }
 
 pub trait Arch {
-    fn get_register_value(&self, register: Register) -> u64;
+    fn get_register_value(&self, register: Register) -> RdbgResult<u64>;
     fn set_register_value(&self, register: Register, data: u64);
-    fn get_pc(&self) -> u64;
+    fn get_pc(&self) -> RdbgResult<u64>;
     fn set_pc(&self, data: u64);
 }
 
 impl Arch for Debugger {
-    fn get_register_value(&self, register: Register) -> u64 {
+    #[allow(deprecated)]
+    fn get_register_value(&self, register: Register) -> RdbgResult<u64> {
         // TODO: check if this fn is ever made public
         //let regs = ptrace::ptrace_get_data::<user_regs_struct>(PTRACE_GETREGS, pid);
         //println!("regs: {:#?}", regs);
@@ -61,10 +63,10 @@ impl Arch for Debugger {
         let register_ptr: *mut c_void = &mut registers as *mut _ as *mut c_void;
 
         unsafe {
-            ptrace::ptrace(PTRACE_GETREGS, self.pid, ptr::null_mut(), register_ptr).ok();
+            ptrace::ptrace(PTRACE_GETREGS, self.pid, ptr::null_mut(), register_ptr)?;
         }
 
-        match register {
+        let reg = match register {
             Register::R15 => registers.r15,
             Register::R14 => registers.r14,
             Register::R13 => registers.r13,
@@ -92,9 +94,11 @@ impl Arch for Debugger {
             Register::Es => registers.es,
             Register::Fs => registers.fs,
             Register::Gs => registers.gs,
-        }
+        };
+        Ok(reg)
     }
 
+    #[allow(deprecated)]
     fn set_register_value(&self, register: Register, data: u64) {
         unsafe {
             let mut registers: user_regs_struct = mem::zeroed();
@@ -134,7 +138,7 @@ impl Arch for Debugger {
         }
     }
 
-    fn get_pc(&self) -> u64 {
+    fn get_pc(&self) -> RdbgResult<u64> {
         self.get_register_value(Register::Rip)
     }
 

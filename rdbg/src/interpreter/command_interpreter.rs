@@ -5,22 +5,28 @@ use fnv::FnvHashMap;
 
 use std::error::Error;
 
-use rdbg_core::commands;
 use rdbg_core::core::debugger;
+use rdbg_core::commands::Command;
+use rdbg_core::util::error::RdbgResult;
 
 static PROMPT: &'static str = "\x1b[1;32mrdbg>\x1b[0m ";
 
 pub struct CommandInterpreter {
-    debugger: debugger::Debugger,
-    commands: FnvHashMap<&'static str, commands::Command>,
+    dbg: debugger::Debugger,
+    commands: FnvHashMap<&'static str, Command>,
 }
 
 impl CommandInterpreter {
-    pub fn new(debugger: debugger::Debugger) -> CommandInterpreter {
+    pub fn new() -> CommandInterpreter {
         CommandInterpreter {
-            debugger: debugger,
-            commands: commands::Command::map(),
+            dbg: debugger::Debugger::new(),
+            commands: Command::map(),
         }
+    }
+
+    pub fn set_program(&mut self, path: &str) -> RdbgResult<()> {
+        let load_cmd = self.commands.get("load").unwrap(); // safe unwrap, load is a command
+        (load_cmd.execute)(&[path], &mut self.dbg)
     }
 
     pub fn read_line(&mut self) -> Result<(), Box<Error>> {
@@ -46,15 +52,7 @@ impl CommandInterpreter {
                     rl.add_history_entry(&line);
 
                     let v: Vec<&str> = line.split(' ').collect();
-                    if v[0] == "quit" {
-                        break;
-                    }
-
-                    if v[0] == "help" {
-                        self.command_help(&v);
-                    } else {
-                        self.handle_command(&v);
-                    }
+                    self.handle_command(v);
                 }
                 Err(ReadlineError::Interrupted) => break,  // Handle Ctrl-C
                 Err(ReadlineError::Eof) => break,  // Handle Ctrl-D
@@ -68,23 +66,19 @@ impl CommandInterpreter {
         Ok(())
     }
 
-    fn handle_command(&mut self, cmd: &[&str]) {
-        let args = &cmd[1..];
-        if let Some(cmd) = self.commands.get(cmd[0]) {
-            let status = (cmd.execute)(args, &mut self.debugger);
-            println!("{}", status);
-        } else {
-            self.handle_unknown_command(cmd[0]);
-        }
-    }
+    fn handle_command(&mut self, input: Vec<&str>) {
+        let cmd = input[0];
+        match self.commands.get(cmd) {
+            Some(cmd) => {
+                let mut args = input.as_slice();
 
-    fn command_help(&self, args: &[&str]) {
-        if args.len() == 1 {
-            println!("This is the help message");
-        } else if let Some(cmd) = self.commands.get(args[1]) {
-            println!("{}", cmd.help);
-        } else {
-            self.handle_unknown_command(args[1]);
+                if 1 < args.len() {
+                    args = &args[1..];
+                }
+
+                let result = (cmd.execute)(args, &mut self.dbg);
+            }
+            None => self.handle_unknown_command(cmd),
         }
     }
 

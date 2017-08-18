@@ -1,6 +1,5 @@
 //! The main `Debugger` module.
 //! This module contains the main interface for the core functionality.
-use nix;
 use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{waitpid, WaitStatus};
@@ -9,8 +8,6 @@ use libc;
 use libc::c_void;
 
 use std::ptr;
-use std::path::PathBuf;
-use std::error::Error;
 use std::ffi::CString;
 use fnv::FnvHashMap;
 
@@ -18,6 +15,7 @@ use super::arch::Arch;
 use super::program::Program;
 use super::super::{Pid, Address};
 use super::super::breakpoint::breakpoint;
+use super::super::util::error::{RdbgResult, RdbgError};
 
 pub struct Debugger {
     pub pid: Pid,
@@ -66,7 +64,8 @@ impl Debugger {
     ///    println!("Error: {}", error);
     /// }
     /// ```
-    pub fn execute_target(&mut self) -> Result<(), Box<Error>> {
+    #[allow(deprecated)]
+    pub fn execute_target(&mut self) -> RdbgResult<()> {
         match self.program {
             Some(ref prog) => {
                 let path = prog.path.to_str().unwrap();
@@ -77,7 +76,7 @@ impl Debugger {
                         debug!(
                             "Continuing execution in parent process, new child has pid: {}",
                             child
-                            );
+                        );
                         self.pid = child;
                         self.wait_for_signal()
                     }
@@ -87,11 +86,11 @@ impl Debugger {
                         ptrace::traceme().ok();
                         execve(program_as_cstring, &[], &[]).ok().expect(
                             "execve() operation failed",
-                            );
+                        );
                         unreachable!();
                     }
                 }
-            },
+            }
             None => panic!("There is no file loaded."),
         }
     }
@@ -112,46 +111,74 @@ impl Debugger {
     ///    println!("Error: {}", error);
     /// }
     /// ```
-    pub fn attach_target(&mut self, pid: Pid) -> nix::Result<()> {
+    #[allow(deprecated)]
+    pub fn attach_target(&mut self, pid: Pid) -> RdbgResult<()> {
         self.pid = pid;
-        ptrace::attach(pid)
+        match ptrace::attach(pid) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RdbgError::NixError),
+        }
     }
 
-    pub fn load_program(&mut self, program: Program) {
+    pub fn load_program(&mut self, program: Program) -> RdbgResult<()> {
         self.program = Some(program);
         // TODO: load ELF and DWARF info here
+        Ok(())
     }
 
-    pub fn continue_execution(&mut self) {
-        if self.breakpoints.contains_key(&self.get_pc()) {
-            self.step_over_breakpoint();
+    pub fn procinfo(&mut self) -> RdbgResult<()> {
+        match self.program {
+            Some(ref program) => {
+                println!("{:?}", program);
+                Ok(())
+            }
+            None => {
+                println!("There is no program loaded.");
+                Ok(()) //Ok("There is no program loaded."),
+            }
         }
-        ptrace::cont(self.pid, None).ok();
-        self.wait_for_signal().ok();
+    }
+
+    #[allow(deprecated)]
+    pub fn continue_execution(&mut self) -> RdbgResult<()> {
+        let pc = &self.get_pc()?;
+        if self.breakpoints.contains_key(pc) {
+            self.step_over_breakpoint()?;
+        }
+        ptrace::cont(self.pid, None)?;
+        self.wait_for_signal()
     }
 
     /// Reads a word from the process memory at the given address.
-    pub fn read_memory(&self, address: Address) -> nix::Result<i64> {
+    #[allow(deprecated)]
+    pub fn read_memory(&self, address: Address) -> RdbgResult<i64> {
         unsafe {
-            ptrace::ptrace(
+            match ptrace::ptrace(
                 PTRACE_PEEKDATA,
                 self.pid,
                 address as *mut c_void,
                 ptr::null_mut(),
-            )
+            ) {
+                Ok(data) => Ok(data),
+                Err(_) => Err(RdbgError::NixError),
+            }
         }
     }
 
     /// Writes a word with the given value to the process memory
     /// at the given address.
-    pub fn write_memory(&self, address: Address, data: i64) {
+    #[allow(deprecated)]
+    pub fn write_memory(&self, address: Address, data: i64) -> RdbgResult<()> {
         unsafe {
-            ptrace::ptrace(
+            match ptrace::ptrace(
                 PTRACE_POKEDATA,
                 self.pid,
                 address as *mut c_void,
                 data as *mut c_void,
-            ).ok();
+            ) {
+                Ok(_) => Ok(()),
+                Err(_) => Err(RdbgError::NixError),
+            }
         }
     }
 
@@ -169,38 +196,44 @@ impl Debugger {
         self.breakpoints.remove(&address);
     }
 
-    fn single_step_instruction(&self) {
+    #[allow(deprecated)]
+    fn single_step_instruction(&self) -> RdbgResult<()> {
         unsafe {
             ptrace::ptrace(
                 PTRACE_SINGLESTEP,
                 self.pid,
                 ptr::null_mut(),
                 ptr::null_mut(),
-            ).ok();
-            self.wait_for_signal().ok();
+            )?;
+            self.wait_for_signal()?;
+            Ok(())
         }
     }
 
-    pub fn single_step_instruction_with_breakpoints(&mut self) {
-        if self.breakpoints.contains_key(&self.get_pc()) {
-            self.step_over_breakpoint();
+    pub fn single_step_instruction_with_breakpoints(&mut self) -> RdbgResult<()> {
+        let pc = &self.get_pc().unwrap();
+        if self.breakpoints.contains_key(pc) {
+            self.step_over_breakpoint()
         } else {
-            self.single_step_instruction();
+            self.single_step_instruction()
         }
     }
 
-    fn step_over_breakpoint(&mut self) {
-        let pc = &self.get_pc();
+    fn step_over_breakpoint(&mut self) -> RdbgResult<()> {
+        let pc = &self.get_pc().unwrap();
+        // safe unwrap, checks are performed outside fn
         let mut bp = *self.breakpoints.get_mut(pc).unwrap();
-        
+
         if bp.is_enabled() {
-            bp.disable(); // disable the breakpoint to step over it
-            self.single_step_instruction();
-            bp.enable();
+            bp.disable()?; // disable the breakpoint to step over it
+            self.single_step_instruction()?;
+            bp.enable()?;
         }
+        Ok(())
     }
 
-    fn wait_for_signal(&self) -> Result<(), Box<Error>> {
+    #[allow(deprecated)]
+    fn wait_for_signal(&self) -> RdbgResult<()> {
         match waitpid(self.pid, None) {
             Ok(WaitStatus::Exited(_, code)) => {
                 info!("WaitStatus: Exited with status: {}", code);
@@ -229,7 +262,7 @@ impl Debugger {
                         debug!("Recieved {}", siginfo.si_signo);
                         Ok(())
                     }
-                    Err(_) => panic!("Error getting signal"),
+                    Err(_) => Err(RdbgError::NixError),
                 }
             }
             Ok(WaitStatus::Continued(_)) => {
@@ -237,7 +270,7 @@ impl Debugger {
                 Ok(())
             }
             Ok(_) => panic!("Unknown waitstatus"),
-            Err(_) => panic!("Unhandled error in wait_for_signal()"),
+            Err(_) => Err(RdbgError::NixError),
         }
     }
 
@@ -250,10 +283,10 @@ impl Debugger {
         debug!("si_code: {:?}", siginfo.si_code);
 
         if siginfo.si_code == 0x80 {
-            self.set_pc(self.get_pc() - 1); // move the pc back one instruction
+            self.set_pc(self.get_pc().unwrap() - 1); // move the pc back one instruction
             info!(
                 "Hit breakpoint at address {:?}",
-                format!("{:#x}", self.get_pc())
+                format!("{:#x}", self.get_pc().unwrap())
             );
         }
     }

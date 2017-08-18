@@ -14,10 +14,7 @@ use simplelog::{Config, TermLogger, WriteLogger, CombinedLogger, LogLevelFilter}
 
 use std::process;
 use std::fs::File;
-use std::path::PathBuf;
 
-use rdbg_core::core::debugger;
-use rdbg_core::core::program;
 use interpreter::command_interpreter;
 
 fn main() {
@@ -28,7 +25,6 @@ fn main() {
         .arg(
             Arg::with_name("PROGRAM")
                 .help("The program to debug")
-                .required(true)
                 .index(1),
         )
         .arg(Arg::with_name("v").short("v").multiple(true).help(
@@ -52,20 +48,16 @@ fn main() {
         ),
     ]).unwrap();
 
-    let path = &String::from(args.value_of("PROGRAM").unwrap());
-    let program = program::Program::new(&PathBuf::from(path));
-
-    let mut dbg = debugger::Debugger::new();
-    dbg.load_program(program);
-
-    if let Err(error) = dbg.execute_target() {
-        error!("Application Error: {}", error);
-        process::exit(1);
+    let mut interpreter = command_interpreter::CommandInterpreter::new();
+    match args.value_of("PROGRAM") {
+        Some(path) => {
+            interpreter.set_program(path).expect(
+                "Problem loading program",
+            )
+        }
+        None => {}
     }
-    // TODO: Handle attaching to a process
 
-    // start interpreter after starting the trace
-    let mut interpreter = command_interpreter::CommandInterpreter::new(dbg);
     if let Err(error) = interpreter.read_line() {
         error!("Application Error: {}", error);
         process::exit(1);

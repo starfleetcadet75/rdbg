@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct Program {
     pub path: PathBuf,
     pub args: Vec<String>,

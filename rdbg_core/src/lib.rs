@@ -10,6 +10,7 @@ extern crate fnv;
 pub mod core;
 pub mod commands;
 mod breakpoint;
+pub mod util;
 
 pub type Pid = nix::unistd::Pid;
 pub type Address = u64;
