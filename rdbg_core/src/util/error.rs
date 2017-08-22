@@ -1,8 +1,8 @@
 use nix;
 
 use std::{fmt, result};
-use std::num::ParseIntError;
 use std::error::Error;
+use std::num::ParseIntError;
 
 /// The rdbg error type provides a common way of
 /// handling errors that may occur during execution.
@@ -20,15 +20,11 @@ pub enum RdbgError {
 pub type RdbgResult<T> = result::Result<T, RdbgError>;
 
 impl From<nix::Error> for RdbgError {
-    fn from(_: nix::Error) -> RdbgError {
-        RdbgError::NixError
-    }
+    fn from(_: nix::Error) -> RdbgError { RdbgError::NixError }
 }
 
 impl From<ParseIntError> for RdbgError {
-    fn from(_: ParseIntError) -> RdbgError {
-        RdbgError::ParseError
-    }
+    fn from(_: ParseIntError) -> RdbgError { RdbgError::ParseError }
 }
 
 impl Error for RdbgError {

@@ -1,12 +1,12 @@
+use fnv::FnvHashMap;
+use rustyline::{CompletionType, Config, Editor};
 use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
-use rustyline::{Config, CompletionType, Editor};
-use fnv::FnvHashMap;
 
 use std::error::Error;
 
-use rdbg_core::core::debugger;
 use rdbg_core::commands::Command;
+use rdbg_core::core::debugger;
 use rdbg_core::util::error::RdbgResult;
 
 static PROMPT: &'static str = "\x1b[1;32mrdbg>\x1b[0m ";

@@ -1,11 +1,12 @@
+
+use libc::c_void;
 use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
-use libc::c_void;
 
 use std::ptr;
 
-use super::super::{Pid, Address};
-use super::super::util::error::{RdbgResult, RdbgError};
+use super::super::{Address, Pid};
+use super::super::util::error::{RdbgError, RdbgResult};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Breakpoint {
@@ -46,13 +47,9 @@ impl Breakpoint {
         Ok(())
     }
 
-    pub fn is_enabled(&self) -> bool {
-        self.enabled
-    }
+    pub fn is_enabled(&self) -> bool { self.enabled }
 
-    pub fn get_address(&self) -> Address {
-        self.address
-    }
+    pub fn get_address(&self) -> Address { self.address }
 
     #[allow(deprecated)]
     fn read_memory(&self, address: Address) -> RdbgResult<i64> {

@@ -9,11 +9,11 @@ extern crate rdbg_core;
 
 mod interpreter;
 
-use clap::{Arg, App};
-use simplelog::{Config, TermLogger, WriteLogger, CombinedLogger, LogLevelFilter};
+use clap::{App, Arg};
+use simplelog::{CombinedLogger, Config, LogLevelFilter, TermLogger, WriteLogger};
 
-use std::process;
 use std::fs::File;
+use std::process;
 
 use interpreter::command_interpreter;
 

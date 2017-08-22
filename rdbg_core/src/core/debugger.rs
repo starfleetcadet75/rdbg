@@ -1,21 +1,22 @@
 //! The main `Debugger` module.
 //! This module contains the main interface for the core functionality.
-use nix::sys::ptrace;
-use nix::sys::ptrace::ptrace::*;
-use nix::sys::wait::{waitpid, WaitStatus};
-use nix::unistd::{execve, fork, ForkResult};
+
 use libc;
 use libc::c_void;
+use nix::sys::ptrace;
+use nix::sys::ptrace::ptrace::*;
+use nix::sys::wait::{WaitStatus, waitpid};
+use nix::unistd::{ForkResult, execve, fork};
 
-use std::ptr;
-use std::ffi::CString;
 use fnv::FnvHashMap;
+use std::ffi::CString;
+use std::ptr;
 
 use super::arch::Arch;
 use super::program::Program;
-use super::super::{Pid, Address};
+use super::super::{Address, Pid};
 use super::super::breakpoint::breakpoint;
-use super::super::util::error::{RdbgResult, RdbgError};
+use super::super::util::error::{RdbgError, RdbgResult};
 
 pub struct Debugger {
     pub pid: Pid,
@@ -205,9 +206,7 @@ impl Debugger {
         );
     }
 
-    pub fn remove_breakpoint(&mut self, address: Address) {
-        self.breakpoints.remove(&address);
-    }
+    pub fn remove_breakpoint(&mut self, address: Address) { self.breakpoints.remove(&address); }
 
     pub fn enable_breakpoint(&mut self, address: Address) -> RdbgResult<()> {
         if self.breakpoints.contains_key(&address) {

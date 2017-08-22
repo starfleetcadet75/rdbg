@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use super::Address;
-use super::core::{program, debugger};
+use super::core::{debugger, program};
 use super::core::arch::Arch;
 use super::util::error::RdbgResult;
 
@@ -145,9 +145,7 @@ fn command_disable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()
     Ok(())
 }
 
-fn command_regs(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
-    dbg.print_regs()
-}
+fn command_regs(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> { dbg.print_regs() }
 
 fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     let mut address = 0;

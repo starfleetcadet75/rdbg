@@ -1,9 +1,9 @@
+use libc::{c_void, user_regs_struct};
 use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
-use libc::{user_regs_struct, c_void};
 
+use std::{mem, ptr};
 use std::fmt;
-use std::{ptr, mem};
 use std::slice::Iter;
 
 use super::debugger::Debugger;
@@ -41,9 +41,7 @@ pub enum Register {
 }
 
 impl fmt::Display for Register {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Debug::fmt(self, f) }
 }
 
 impl Register {
@@ -96,8 +94,8 @@ impl Arch for Debugger {
     #[allow(deprecated)]
     fn get_register_value(&self, register: Register) -> RdbgResult<u64> {
         // TODO: check if this fn is ever made public
-        //let regs = ptrace::ptrace_get_data::<user_regs_struct>(PTRACE_GETREGS, pid);
-        //println!("regs: {:#?}", regs);
+        // let regs = ptrace::ptrace_get_data::<user_regs_struct>(PTRACE_GETREGS, pid);
+        // println!("regs: {:#?}", regs);
         let mut registers: user_regs_struct = unsafe { mem::zeroed() };
         let register_ptr: *mut c_void = &mut registers as *mut _ as *mut c_void;
 
@@ -177,13 +175,9 @@ impl Arch for Debugger {
         }
     }
 
-    fn get_pc(&self) -> RdbgResult<u64> {
-        self.get_register_value(Register::Rip)
-    }
+    fn get_pc(&self) -> RdbgResult<u64> { self.get_register_value(Register::Rip) }
 
-    fn set_pc(&self, data: u64) {
-        self.set_register_value(Register::Rip, data);
-    }
+    fn set_pc(&self, data: u64) { self.set_register_value(Register::Rip, data); }
 
     fn print_regs(&self) -> RdbgResult<()> {
         for &reg in Register::iterator() {
