@@ -76,7 +76,7 @@ impl CommandInterpreter {
             Some(cmd) => {
                 let mut args = input.as_slice();
 
-                if 1 < args.len() {
+                if 0 < args.len() {
                     args = &args[1..];
                 }
 

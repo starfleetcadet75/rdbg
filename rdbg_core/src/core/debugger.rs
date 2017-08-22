@@ -177,7 +177,24 @@ impl Debugger {
         }
     }
 
+    pub fn print_breakpoints(&self) {
+        let mut count = 0;
+        for (address, breakpoint) in &self.breakpoints {
+            println!(
+                "Breakpoint {} is at {:?}, enabled = {}",
+                count,
+                format!("{:#x}", address),
+                breakpoint.is_enabled()
+            );
+        }
+    }
+
     pub fn set_breakpoint_at(&mut self, address: Address) {
+        println!(
+            "Breakpoint {} at {:?}",
+            self.breakpoints.len() + 1,
+            format!("{:#x}", address)
+        );
         self.breakpoints.insert(
             address,
             breakpoint::Breakpoint::new(

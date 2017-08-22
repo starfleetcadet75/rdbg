@@ -103,11 +103,15 @@ fn command_continue(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<(
 fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling break command");
 
-    let mut address = 0;
-    if args[0].starts_with("0x") {
-        address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
+    if 0 < args.len() {
+        let mut address = 0;
+        if args[0].starts_with("0x") {
+            address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
+        }
+        dbg.set_breakpoint_at(address);
+    } else {
+        dbg.print_breakpoints();
     }
-    dbg.set_breakpoint_at(address);
     Ok(())
 }
 
