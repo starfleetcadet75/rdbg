@@ -1,6 +1,6 @@
 use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
+use rustyline::{Config, CompletionType, Editor};
 use fnv::FnvHashMap;
 
 use std::error::Error;
@@ -33,7 +33,12 @@ impl CommandInterpreter {
         let history_file = "/tmp/.rdbg_history";
         debug!("Starting debugger session");
 
-        let mut rl = Editor::new().history_ignore_space(true);
+
+        let config = Config::builder()
+            .history_ignore_space(true)
+            .completion_type(CompletionType::List)
+            .build();
+        let mut rl = Editor::with_config(config);
         let completer = FilenameCompleter::new();
         rl.set_completer(Some(completer));
 
@@ -47,9 +52,18 @@ impl CommandInterpreter {
         loop {
             let readline = rl.readline(PROMPT);
             match readline {
-                Ok(line) => {
+                Ok(mut line) => {
                     debug!("User Command: {}", line);
-                    rl.add_history_entry(&line);
+
+                    if line.is_empty() {
+                        if rl.get_history().is_empty() {
+                            break;
+                        } else {
+                            line = rl.get_history().last().unwrap().clone(); // safe unwrap
+                        }
+                    } else {
+                        rl.add_history_entry(line.as_ref());
+                    }
 
                     let v: Vec<&str> = line.split(' ').collect();
                     if v[0] == "quit" || v[0] == "q" {
@@ -66,25 +80,43 @@ impl CommandInterpreter {
                 }
             }
         }
-        rl.save_history(history_file).unwrap();
+        rl.save_history(history_file).expect(
+            "Unable to write history file",
+        );
         Ok(())
     }
 
     fn handle_command(&mut self, input: Vec<&str>) {
         let cmd = input[0];
-        match self.commands.get(cmd) {
-            Some(cmd) => {
-                let mut args = input.as_slice();
 
-                if 0 < args.len() {
-                    args = &args[1..];
+        if cmd == "help" {
+            // handle the help command
+            if 1 < input.len() {
+                match self.commands.get(input[1]) {
+                    // print the help msg for the given cmd
+                    Some(cmd) => println!("{}", cmd.help),
+                    None => self.handle_unknown_command(cmd),
                 }
-
-                if let Err(e) = (cmd.execute)(args, &mut self.dbg) {
-                    error!("Error ({}) executing command: {}", e, cmd.name);
-                }
+            } else {
+                println!("This is the help message.");
             }
-            None => self.handle_unknown_command(cmd),
+        } else {
+            match self.commands.get(cmd) {
+                Some(cmd) => {
+                    let mut args = input.as_slice();
+
+                    // handle other args to the command that need to be forwarded along
+                    if 0 < args.len() {
+                        args = &args[1..];
+                    }
+
+                    // try to execute the command with the given args
+                    if let Err(e) = (cmd.execute)(args, &mut self.dbg) {
+                        error!("Error ({}) executing command: {}", e, cmd.name);
+                    }
+                }
+                None => self.handle_unknown_command(cmd),
+            }
         }
     }
 
