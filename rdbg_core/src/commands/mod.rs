@@ -70,7 +70,7 @@ impl Command {
 
         insert_command!("print", "Print value of expression EXP.", command_print);
 
-        insert_command!("memory", "Read or write to process memory.", command_memory);
+        insert_command!("mem", "Read or write to process memory.", command_memory);
 
         insert_command!("stepi", "Step one instruction exactly.", command_stepi);
 
@@ -102,7 +102,11 @@ fn command_continue(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<(
 
 fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling break command");
-    let address = Address::from_str_radix(args[0], 16).unwrap();
+
+    let mut address = 0;
+    if args[0].starts_with("0x") {
+        address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
+    }
     dbg.set_breakpoint_at(address);
     Ok(())
 }
@@ -116,15 +120,17 @@ fn command_print(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> 
 }
 
 fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
-    if args[0] == "read" {
-        let address = Address::from_str(args[1]).unwrap();
+    let mut address = 0;
+    if args[1].starts_with("0x") {
+        address = Address::from_str_radix(args[1].split("x").skip(1).next().unwrap(), 16)?;
+    }
+
+    debug!("Input Address: {:?}", format!("{:#x}", address));
+    if args[0] == "read" || args[0] == "r" {
         println!("{:?}", format!("{:#x}", dbg.read_memory(address)?));
     }
-    if args[0] == "write" {
-        dbg.write_memory(
-            Address::from_str(args[1]).unwrap(),
-            i64::from_str(args[2]).unwrap(),
-        )?;
+    if args[0] == "write" || args[0] == "w" {
+        dbg.write_memory(address, i64::from_str(args[2]).unwrap())?;
     }
     Ok(())
 }

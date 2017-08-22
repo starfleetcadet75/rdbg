@@ -52,6 +52,10 @@ impl CommandInterpreter {
                     rl.add_history_entry(&line);
 
                     let v: Vec<&str> = line.split(' ').collect();
+                    if v[0] == "quit" || v[0] == "q" {
+                        break;
+                    }
+
                     self.handle_command(v);
                 }
                 Err(ReadlineError::Interrupted) => break,  // Handle Ctrl-C
@@ -76,7 +80,9 @@ impl CommandInterpreter {
                     args = &args[1..];
                 }
 
-                let result = (cmd.execute)(args, &mut self.dbg);
+                if let Err(e) = (cmd.execute)(args, &mut self.dbg) {
+                    error!("Error ({}) executing command: {}", e, cmd.name);
+                }
             }
             None => self.handle_unknown_command(cmd),
         }

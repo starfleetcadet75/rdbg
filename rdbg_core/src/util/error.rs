@@ -1,6 +1,7 @@
 use nix;
 
 use std::{fmt, result};
+use std::num::ParseIntError;
 use std::error::Error;
 
 /// The rdbg error type provides a common way of
@@ -11,13 +12,23 @@ pub enum RdbgError {
     CommandError(String),
     /// An error was caused by a call into the Nix crate.
     NixError,
+    /// An error reading program input.
+    ParseError,
 }
 
 /// rdbg result type
 pub type RdbgResult<T> = result::Result<T, RdbgError>;
 
 impl From<nix::Error> for RdbgError {
-    fn from(_: nix::Error) -> RdbgError { RdbgError::NixError }
+    fn from(_: nix::Error) -> RdbgError {
+        RdbgError::NixError
+    }
+}
+
+impl From<ParseIntError> for RdbgError {
+    fn from(_: ParseIntError) -> RdbgError {
+        RdbgError::ParseError
+    }
 }
 
 impl Error for RdbgError {
@@ -25,6 +36,7 @@ impl Error for RdbgError {
         match self {
             &RdbgError::CommandError(_) => "Error executing command",
             &RdbgError::NixError => "Error calling nix function",
+            &RdbgError::ParseError => "Error parsing input value",
         }
     }
 }
@@ -34,6 +46,7 @@ impl fmt::Display for RdbgError {
         match self {
             &RdbgError::CommandError(ref cmd) => write!(f, "Error executing command: {}", cmd),
             &RdbgError::NixError => write!(f, "Error calling nix function"),
+            &RdbgError::ParseError => write!(f, "Error parsing input value"),
         }
     }
 }

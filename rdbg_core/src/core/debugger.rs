@@ -128,15 +128,10 @@ impl Debugger {
 
     pub fn procinfo(&mut self) -> RdbgResult<()> {
         match self.program {
-            Some(ref program) => {
-                println!("{:?}", program);
-                Ok(())
-            }
-            None => {
-                println!("There is no program loaded.");
-                Ok(()) //Ok("There is no program loaded."),
-            }
+            Some(ref program) => println!("{:?}", program),
+            None => println!("There is no program loaded."),
         }
+        Ok(())
     }
 
     #[allow(deprecated)]
@@ -237,6 +232,11 @@ impl Debugger {
         match waitpid(self.pid, None) {
             Ok(WaitStatus::Exited(_, code)) => {
                 info!("WaitStatus: Exited with status: {}", code);
+                println!(
+                    "[Inferior (process {}) exited with status {}]",
+                    self.pid,
+                    code
+                );
                 Ok(())
             }
             Ok(WaitStatus::Signaled(_, signal, core_dump)) => {

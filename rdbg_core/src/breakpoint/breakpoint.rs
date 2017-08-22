@@ -23,7 +23,7 @@ impl Breakpoint {
             enabled: false,
             stored_word: 0,
         };
-        bp.enable();
+        bp.enable().expect("problem setting breakpoint");
         bp
     }
 
