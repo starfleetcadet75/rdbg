@@ -68,7 +68,7 @@ impl Command {
             command_break
         );
 
-        insert_command!("print", "Print value of expression EXP.", command_print);
+        insert_command!("regs", "Print register values.", command_regs);
 
         insert_command!("mem", "Read or write to process memory.", command_memory);
 
@@ -115,12 +115,8 @@ fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> 
     Ok(())
 }
 
-fn command_print(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
-    println!(
-        "RIP: {:?}",
-        format!("{:#x}", dbg.get_register_value(Register::Rip)?)
-    );
-    Ok(())
+fn command_regs(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
+    dbg.print_regs()
 }
 
 fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {

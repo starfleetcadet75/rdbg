@@ -186,6 +186,7 @@ impl Debugger {
                 format!("{:#x}", address),
                 breakpoint.is_enabled()
             );
+            count += 1;
         }
     }
 

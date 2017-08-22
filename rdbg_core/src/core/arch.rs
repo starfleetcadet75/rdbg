@@ -2,8 +2,9 @@ use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
 use libc::{user_regs_struct, c_void};
 
+use std::fmt;
 use std::{ptr, mem};
-use std::fmt::{self, Debug, Display};
+use std::slice::Iter;
 
 use super::debugger::Debugger;
 use super::super::util::error::RdbgResult;
@@ -39,10 +40,46 @@ pub enum Register {
     Gs,
 }
 
-// TODO: use enum_derive crate
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
+    }
+}
+
+impl Register {
+    pub fn iterator() -> Iter<'static, Register> {
+        use self::Register::*;
+
+        static REGISTERS: [Register; 27] = [
+            R15,
+            R14,
+            R13,
+            R12,
+            Rbp,
+            Rbx,
+            R11,
+            R10,
+            R9,
+            R8,
+            Rax,
+            Rcx,
+            Rdx,
+            Rsi,
+            Rdi,
+            OrigRax,
+            Rip,
+            Cs,
+            Eflags,
+            Rsp,
+            Ss,
+            FsBase,
+            GsBase,
+            Ds,
+            Es,
+            Fs,
+            Gs,
+        ];
+        REGISTERS.into_iter()
     }
 }
 
@@ -51,6 +88,8 @@ pub trait Arch {
     fn set_register_value(&self, register: Register, data: u64);
     fn get_pc(&self) -> RdbgResult<u64>;
     fn set_pc(&self, data: u64);
+    fn print_regs(&self) -> RdbgResult<()>;
+    fn print_reg(&self, register: Register) -> RdbgResult<()>;
 }
 
 impl Arch for Debugger {
@@ -144,5 +183,21 @@ impl Arch for Debugger {
 
     fn set_pc(&self, data: u64) {
         self.set_register_value(Register::Rip, data);
+    }
+
+    fn print_regs(&self) -> RdbgResult<()> {
+        for &reg in Register::iterator() {
+            self.print_reg(reg)?;
+        }
+        Ok(())
+    }
+
+    fn print_reg(&self, register: Register) -> RdbgResult<()> {
+        println!(
+            "{:?}\t{}",
+            register,
+            format!("{:#x}", self.get_register_value(register)?)
+        );
+        Ok(())
     }
 }
