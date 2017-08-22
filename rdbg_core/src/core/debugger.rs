@@ -178,7 +178,7 @@ impl Debugger {
     }
 
     pub fn print_breakpoints(&self) {
-        let mut count = 0;
+        let mut count = 1;
         for (address, breakpoint) in &self.breakpoints {
             println!(
                 "Breakpoint {} is at {:?}, enabled = {}",
@@ -207,6 +207,30 @@ impl Debugger {
 
     pub fn remove_breakpoint(&mut self, address: Address) {
         self.breakpoints.remove(&address);
+    }
+
+    pub fn enable_breakpoint(&mut self, address: Address) -> RdbgResult<()> {
+        if self.breakpoints.contains_key(&address) {
+            let mut bp = *self.breakpoints.get_mut(&address).unwrap();
+            if !bp.is_enabled() {
+                bp.enable()?;
+            }
+        } else {
+            println!("No breakpoint at address {:?}", format!("{:#x}", address))
+        }
+        Ok(())
+    }
+
+    pub fn disable_breakpoint(&mut self, address: Address) -> RdbgResult<()> {
+        if self.breakpoints.contains_key(&address) {
+            let mut bp = *self.breakpoints.get_mut(&address).unwrap();
+            if bp.is_enabled() {
+                bp.disable()?; // TODO: disable does not seem to actually modify the value
+            }
+        } else {
+            println!("No breakpoint at address {:?}", format!("{:#x}", address))
+        }
+        Ok(())
     }
 
     #[allow(deprecated)]

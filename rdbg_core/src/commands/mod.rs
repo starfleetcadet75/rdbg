@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use super::Address;
 use super::core::{program, debugger};
-use super::core::arch::{Arch, Register};
+use super::core::arch::Arch;
 use super::util::error::RdbgResult;
 
 pub struct Command {
@@ -68,6 +68,18 @@ impl Command {
             command_break
         );
 
+        insert_command!(
+            "enable",
+            "Enables the breakpoint at the given address.",
+            command_enable
+        );
+
+        insert_command!(
+            "disable",
+            "Disables the breakpoint at the given address.",
+            command_disable
+        );
+
         insert_command!("regs", "Print register values.", command_regs);
 
         insert_command!("mem", "Read or write to process memory.", command_memory);
@@ -111,6 +123,24 @@ fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> 
         dbg.set_breakpoint_at(address);
     } else {
         dbg.print_breakpoints();
+    }
+    Ok(())
+}
+
+fn command_enable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
+    debug!("Calling enable command");
+    if args[0].starts_with("0x") {
+        let address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
+        dbg.enable_breakpoint(address)?;
+    }
+    Ok(())
+}
+
+fn command_disable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
+    debug!("Calling disable command");
+    if args[0].starts_with("0x") {
+        let address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
+        dbg.disable_breakpoint(address)?;
     }
     Ok(())
 }

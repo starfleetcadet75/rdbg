@@ -20,13 +20,13 @@
 [x] memory    
 [x] stepi    
 [] print    
-[] disable/enable breakpoint    
+[x] disable/enable breakpoint    
 [] clear    
 [] attach    
 [] detach    
 [] args    
 [] backtrace    
-[] regs    
+[x] regs    
 [] procinfo    
 [] plt    
 [] aslr    
