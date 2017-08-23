@@ -1,9 +1,14 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::PathBuf;
+
+use util::error::RdbgResult;
 
 #[derive(Debug)]
 pub struct Program {
     pub path: PathBuf,
     pub args: Vec<String>,
+    pub buffer: Vec<u8>,
 }
 
 impl Program {
@@ -11,11 +16,15 @@ impl Program {
         Program {
             path: PathBuf::from(path),
             args: Vec::new(),
+            buffer: Vec::new(),
         }
     }
 
-    // TODO: see builder pattern
-    // pub fn args(&mut self, args: Vec<String>) -> Program {
-    //     self.args = args;
-    // }
+    pub fn args(&mut self, args: Vec<String>) { self.args = args; }
+
+    pub fn load(&mut self) -> RdbgResult<()> {
+        let mut fd = File::open(self.path.clone())?;
+        fd.read_to_end(&mut self.buffer)?;
+        Ok(())
+    }
 }

@@ -50,6 +50,8 @@ impl Command {
             command_start
         );
 
+        insert_command!("entry", "Prints the entry point address.", command_entry);
+
         insert_command!(
             "procinfo",
             "Displays information about the process being debugged.",
@@ -93,13 +95,26 @@ impl Command {
 fn command_load(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling load command");
     let path = &PathBuf::from(args[0]);
-    let program = program::Program::new(path); //.args(args[1..].to_vec());  TODO: Pass args
+
+    // if 1 < args.len() {
+    //     args = &args[1..];
+    // }
+
+    let mut program = program::Program::new(path);
+    // program.args(args);
+    program.load()?;
     dbg.load_program(program)
 }
 
 fn command_start(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling start command");
     dbg.execute_target()
+}
+
+fn command_entry(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
+    debug!("Calling entry command");
+    println!("Entry: {:?}", format!("{:#x}", dbg.get_entrypoint()?));
+    Ok(())
 }
 
 fn command_procinfo(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {

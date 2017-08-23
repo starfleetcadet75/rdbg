@@ -1,6 +1,11 @@
 //! The main `Debugger` module.
 //! This module contains the main interface for the core functionality.
 
+use fnv::FnvHashMap;
+use goblin;
+use goblin::Object;
+use goblin::elf;
+use goblin::error;
 use libc;
 use libc::c_void;
 use nix::sys::ptrace;
@@ -8,7 +13,6 @@ use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{WaitStatus, waitpid};
 use nix::unistd::{ForkResult, execve, fork};
 
-use fnv::FnvHashMap;
 use std::ffi::CString;
 use std::ptr;
 
@@ -122,10 +126,21 @@ impl Debugger {
     }
 
     pub fn load_program(&mut self, program: Program) -> RdbgResult<()> {
+        info!("Loading program: {:?}", program);
         self.program = Some(program);
-        info!("Loading program: {:?}", self.program);
-        // TODO: load ELF and DWARF info here
         Ok(())
+    }
+
+    pub fn get_entrypoint(&mut self) -> RdbgResult<Address> {
+        if let Some(ref program) = self.program {
+            // TODO: figure out better way to get ref
+            match goblin::elf::Elf::parse(&program.buffer) {
+                Ok(binary) => Ok(binary.entry),
+                Err(_) => Err(RdbgError::GoblinError),
+            }
+        } else {
+            Err(RdbgError::GoblinError)
+        }
     }
 
     pub fn procinfo(&mut self) -> RdbgResult<()> {

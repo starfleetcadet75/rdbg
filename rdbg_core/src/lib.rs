@@ -6,6 +6,7 @@ extern crate simplelog;
 extern crate nix;
 extern crate libc;
 extern crate fnv;
+extern crate goblin;
 
 pub mod core;
 pub mod commands;
