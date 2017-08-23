@@ -13,4 +13,9 @@ impl Program {
             args: Vec::new(),
         }
     }
+
+    // TODO: see builder pattern
+    // pub fn args(&mut self, args: Vec<String>) -> Program {
+    //     self.args = args;
+    // }
 }

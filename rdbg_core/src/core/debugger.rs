@@ -123,6 +123,7 @@ impl Debugger {
 
     pub fn load_program(&mut self, program: Program) -> RdbgResult<()> {
         self.program = Some(program);
+        info!("Loading program: {:?}", self.program);
         // TODO: load ELF and DWARF info here
         Ok(())
     }

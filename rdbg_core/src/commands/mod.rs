@@ -93,7 +93,7 @@ impl Command {
 fn command_load(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling load command");
     let path = &PathBuf::from(args[0]);
-    let program = program::Program::new(path);
+    let program = program::Program::new(path); //.args(args[1..].to_vec());  TODO: Pass args
     dbg.load_program(program)
 }
 

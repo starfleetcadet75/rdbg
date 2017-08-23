@@ -24,15 +24,14 @@ impl CommandInterpreter {
         }
     }
 
-    pub fn set_program(&mut self, path: &str) -> RdbgResult<()> {
+    pub fn set_program(&mut self, args: &[&str]) -> RdbgResult<()> {
         let load_cmd = self.commands.get("load").unwrap(); // safe unwrap, load is a command
-        (load_cmd.execute)(&[path], &mut self.dbg)
+        (load_cmd.execute)(args, &mut self.dbg)
     }
 
     pub fn read_line(&mut self) -> Result<(), Box<Error>> {
         let history_file = "/tmp/.rdbg_history";
         debug!("Starting debugger session");
-
 
         let config = Config::builder()
             .history_ignore_space(true)
@@ -40,7 +39,7 @@ impl CommandInterpreter {
             .build();
         let mut rl = Editor::with_config(config);
         let completer = FilenameCompleter::new();
-        rl.set_completer(Some(completer));
+        rl.set_completer(Some(completer)); // TODO: rustyline only supports using one completer
 
         if let Err(_) = rl.load_history(history_file) {
             info!(
