@@ -6,7 +6,7 @@ use std::str::FromStr;
 use super::Address;
 use super::core::{debugger, program};
 use super::core::arch::Arch;
-use super::util::error::RdbgResult;
+use super::util::error::{RdbgError, RdbgResult};
 
 pub struct Command {
     /// The name of the command.
@@ -71,6 +71,12 @@ impl Command {
         );
 
         insert_command!(
+            "clear",
+            "Clears a breakpoint at the specified location.",
+            command_clear
+        );
+
+        insert_command!(
             "enable",
             "Enables the breakpoint at the given address.",
             command_enable
@@ -94,8 +100,9 @@ impl Command {
 
 fn command_load(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling load command");
-    let path = &PathBuf::from(args[0]);
+    check_args_len(args.len(), 1)?;
 
+    let path = &PathBuf::from(args[0]);
     // if 1 < args.len() {
     //     args = &args[1..];
     // }
@@ -135,15 +142,28 @@ fn command_break(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> 
         if args[0].starts_with("0x") {
             address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
         }
-        dbg.set_breakpoint_at(address);
+        dbg.set_breakpoint_at(address)?;
     } else {
         dbg.print_breakpoints();
     }
     Ok(())
 }
 
+fn command_clear(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
+    debug!("Calling clear command");
+
+    check_args_len(args.len(), 1)?;
+    if args[0].starts_with("0x") {
+        let address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
+        dbg.remove_breakpoint(address)?;
+    }
+    Ok(())
+}
+
 fn command_enable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling enable command");
+
+    check_args_len(args.len(), 1)?;
     if args[0].starts_with("0x") {
         let address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
         dbg.enable_breakpoint(address)?;
@@ -153,6 +173,8 @@ fn command_enable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()>
 
 fn command_disable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling disable command");
+
+    check_args_len(args.len(), 1)?;
     if args[0].starts_with("0x") {
         let address = Address::from_str_radix(args[0].split("x").skip(1).next().unwrap(), 16)?;
         dbg.disable_breakpoint(address)?;
@@ -163,6 +185,8 @@ fn command_disable(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()
 fn command_regs(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> { dbg.print_regs() }
 
 fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
+    check_args_len(args.len(), 2)?;
+
     let mut address = 0;
     if args[1].starts_with("0x") {
         address = Address::from_str_radix(args[1].split("x").skip(1).next().unwrap(), 16)?;
@@ -181,4 +205,12 @@ fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()>
 fn command_stepi(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     dbg.single_step_instruction_with_breakpoints()?;
     Ok(())
+}
+
+fn check_args_len(len: usize, needed: usize) -> RdbgResult<()> {
+    if len < needed {
+        Err(RdbgError::NotEnoughArgs)
+    } else {
+        Ok(())
+    }
 }

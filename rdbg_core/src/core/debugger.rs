@@ -17,6 +17,7 @@ use std::ffi::CString;
 use std::ptr;
 
 use super::arch::Arch;
+use super::debugger_state::DebuggerState;
 use super::program::Program;
 use super::super::{Address, Pid};
 use super::super::breakpoint::breakpoint;
@@ -24,6 +25,7 @@ use super::super::util::error::{RdbgError, RdbgResult};
 
 pub struct Debugger {
     pub pid: Pid,
+    state: DebuggerState,
     program: Option<Program>,
     breakpoints: FnvHashMap<Address, breakpoint::Breakpoint>,
 }
@@ -42,6 +44,7 @@ impl Debugger {
     pub fn new() -> Debugger {
         Debugger {
             pid: Pid::from_raw(0),
+            state: DebuggerState::Empty,
             program: None,
             breakpoints: FnvHashMap::default(),
         }
@@ -71,8 +74,8 @@ impl Debugger {
     /// ```
     #[allow(deprecated)]
     pub fn execute_target(&mut self) -> RdbgResult<()> {
-        match self.program {
-            Some(ref prog) => {
+        if let DebuggerState::ExecLoaded = self.state {
+            if let Some(ref prog) = self.program {
                 let path = prog.path.to_str().unwrap();
                 let program_as_cstring = &CString::new(path).unwrap();
 
@@ -83,6 +86,7 @@ impl Debugger {
                             child
                         );
                         self.pid = child;
+                        self.state = DebuggerState::Running;
                         self.wait_for_signal()
                     }
                     ForkResult::Child => {
@@ -95,8 +99,11 @@ impl Debugger {
                         unreachable!();
                     }
                 }
+            } else {
+                Err(RdbgError::NoProgramLoaded)
             }
-            None => panic!("There is no file loaded."),
+        } else {
+            Err(RdbgError::NoProgramLoaded)
         }
     }
 
@@ -127,53 +134,76 @@ impl Debugger {
 
     pub fn load_program(&mut self, program: Program) -> RdbgResult<()> {
         info!("Loading program: {:?}", program);
-        self.program = Some(program);
+        if let DebuggerState::Running = self.state {
+            error!(
+                "Failed to load new program, tracee must be stopped before a new program can be loaded."
+            );
+        } else {
+            self.program = Some(program);
+            self.state = DebuggerState::ExecLoaded;
+        }
         Ok(())
     }
 
     pub fn get_entrypoint(&mut self) -> RdbgResult<Address> {
-        if let Some(ref program) = self.program {
-            // TODO: figure out better way to get ref
-            match goblin::elf::Elf::parse(&program.buffer) {
-                Ok(binary) => Ok(binary.entry),
-                Err(_) => Err(RdbgError::GoblinError),
+        match self.state {
+            DebuggerState::ExecLoaded |
+            DebuggerState::Running => {
+                if let Some(ref program) = self.program {
+                    match goblin::elf::Elf::parse(&program.buffer) {
+                        Ok(binary) => Ok(binary.entry),
+                        Err(_) => Err(RdbgError::GoblinError),
+                    }
+                } else {
+                    Err(RdbgError::GoblinError)
+                }
             }
-        } else {
-            Err(RdbgError::GoblinError)
+            _ => Err(RdbgError::NoProgramLoaded),
         }
     }
 
     pub fn procinfo(&mut self) -> RdbgResult<()> {
-        match self.program {
-            Some(ref program) => println!("{:?}", program),
-            None => println!("There is no program loaded."),
+        match self.state {
+            DebuggerState::ExecLoaded |
+            DebuggerState::Running => {
+                println!("{:?}", self.program);
+                Ok(())
+            }
+            _ => Err(RdbgError::NoProgramLoaded),
         }
-        Ok(())
     }
 
     #[allow(deprecated)]
     pub fn continue_execution(&mut self) -> RdbgResult<()> {
-        let pc = &self.get_pc()?;
-        if self.breakpoints.contains_key(pc) {
-            self.step_over_breakpoint()?;
+        if let DebuggerState::Running = self.state {
+            let pc = &self.get_pc()?;
+            if self.breakpoints.contains_key(pc) {
+                self.step_over_breakpoint()?;
+            }
+            ptrace::cont(self.pid, None)?;
+            self.wait_for_signal()
+        } else {
+            Err(RdbgError::NoProgramLoaded)
         }
-        ptrace::cont(self.pid, None)?;
-        self.wait_for_signal()
     }
 
     /// Reads a word from the process memory at the given address.
     #[allow(deprecated)]
     pub fn read_memory(&self, address: Address) -> RdbgResult<i64> {
-        unsafe {
-            match ptrace::ptrace(
-                PTRACE_PEEKDATA,
-                self.pid,
-                address as *mut c_void,
-                ptr::null_mut(),
-            ) {
-                Ok(data) => Ok(data),
-                Err(_) => Err(RdbgError::NixError),
+        if let DebuggerState::Running = self.state {
+            unsafe {
+                match ptrace::ptrace(
+                    PTRACE_PEEKDATA,
+                    self.pid,
+                    address as *mut c_void,
+                    ptr::null_mut(),
+                ) {
+                    Ok(data) => Ok(data),
+                    Err(_) => Err(RdbgError::NixError),
+                }
             }
+        } else {
+            Err(RdbgError::NoProgramLoaded)
         }
     }
 
@@ -181,16 +211,20 @@ impl Debugger {
     /// at the given address.
     #[allow(deprecated)]
     pub fn write_memory(&self, address: Address, data: i64) -> RdbgResult<()> {
-        unsafe {
-            match ptrace::ptrace(
-                PTRACE_POKEDATA,
-                self.pid,
-                address as *mut c_void,
-                data as *mut c_void,
-            ) {
-                Ok(_) => Ok(()),
-                Err(_) => Err(RdbgError::NixError),
+        if let DebuggerState::Running = self.state {
+            unsafe {
+                match ptrace::ptrace(
+                    PTRACE_POKEDATA,
+                    self.pid,
+                    address as *mut c_void,
+                    data as *mut c_void,
+                ) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err(RdbgError::NixError),
+                }
             }
+        } else {
+            Err(RdbgError::NoProgramLoaded)
         }
     }
 
@@ -207,22 +241,39 @@ impl Debugger {
         }
     }
 
-    pub fn set_breakpoint_at(&mut self, address: Address) {
-        println!(
-            "Breakpoint {} at {:?}",
-            self.breakpoints.len() + 1,
-            format!("{:#x}", address)
-        );
-        self.breakpoints.insert(
-            address,
-            breakpoint::Breakpoint::new(
-                self.pid,
+    pub fn set_breakpoint_at(&mut self, address: Address) -> RdbgResult<()> {
+        if let DebuggerState::Running = self.state {
+            println!(
+                "Breakpoint {} at {:?}",
+                self.breakpoints.len() + 1,
+                format!("{:#x}", address)
+            );
+            self.breakpoints.insert(
                 address,
-            ),
-        );
+                breakpoint::Breakpoint::new(
+                    self.pid,
+                    address,
+                ),
+            );
+            Ok(())
+        } else {
+            Err(RdbgError::NoProgramLoaded)
+        }
     }
 
-    pub fn remove_breakpoint(&mut self, address: Address) { self.breakpoints.remove(&address); }
+    pub fn remove_breakpoint(&mut self, address: Address) -> RdbgResult<()> {
+        if let DebuggerState::Running = self.state {
+            if self.breakpoints.contains_key(&address) {
+                self.breakpoints.remove(&address);
+                info!("Removed breakpoint at {:?}", format!("{:#x}", address));
+            } else {
+                info!("No breakpoint found at {:?}", format!("{:#x}", address));
+            }
+            Ok(())
+        } else {
+            Err(RdbgError::NoProgramLoaded)
+        }
+    }
 
     pub fn enable_breakpoint(&mut self, address: Address) -> RdbgResult<()> {
         if self.breakpoints.contains_key(&address) {
@@ -263,11 +314,15 @@ impl Debugger {
     }
 
     pub fn single_step_instruction_with_breakpoints(&mut self) -> RdbgResult<()> {
-        let pc = &self.get_pc().unwrap();
-        if self.breakpoints.contains_key(pc) {
-            self.step_over_breakpoint()
+        if let DebuggerState::Running = self.state {
+            let pc = &self.get_pc().unwrap();
+            if self.breakpoints.contains_key(pc) {
+                self.step_over_breakpoint()
+            } else {
+                self.single_step_instruction()
+            }
         } else {
-            self.single_step_instruction()
+            Err(RdbgError::NoProgramLoaded)
         }
     }
 

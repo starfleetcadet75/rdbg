@@ -19,6 +19,10 @@ pub enum RdbgError {
     GoblinError,
     /// An IO error occurred.
     IoError(io::Error),
+    /// No program has been loaded by the debugger.
+    NoProgramLoaded,
+    /// Not enough arguments were given for the command.
+    NotEnoughArgs,
 }
 
 /// rdbg result type
@@ -48,6 +52,8 @@ impl Error for RdbgError {
             &RdbgError::ParseError => "Error parsing input value",
             &RdbgError::GoblinError => "Error in goblin",
             &RdbgError::IoError(_) => "An IO Error occurred",
+            &RdbgError::NoProgramLoaded => "There is no program loaded",
+            &RdbgError::NotEnoughArgs => "Not enough arguments were given for the command",
         }
     }
 }
@@ -60,6 +66,10 @@ impl fmt::Display for RdbgError {
             &RdbgError::ParseError => write!(f, "Error parsing input value"),
             &RdbgError::GoblinError => write!(f, "Error in goblin"),
             &RdbgError::IoError(_) => write!(f, "An IO Error occurred"),
+            &RdbgError::NoProgramLoaded => write!(f, "There is no program loaded"),
+            &RdbgError::NotEnoughArgs => {
+                write!(f, "Not enough arguments were given for the command")
+            }
         }
     }
 }
