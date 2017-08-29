@@ -187,11 +187,7 @@ impl Arch for Debugger {
     }
 
     fn print_reg(&self, register: Register) -> RdbgResult<()> {
-        println!(
-            "{:?}\t{}",
-            register,
-            format!("{:#x}", self.get_register_value(register)?)
-        );
+        println!("{:?}\t{:#x}", register, self.get_register_value(register)?);
         Ok(())
     }
 }

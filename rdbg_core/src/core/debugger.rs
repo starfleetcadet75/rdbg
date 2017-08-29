@@ -75,32 +75,32 @@ impl Debugger {
     #[allow(deprecated)]
     pub fn execute_target(&mut self) -> RdbgResult<()> {
         if let DebuggerState::ExecLoaded = self.state {
-            if let Some(ref prog) = self.program {
-                let path = prog.path.to_str().unwrap();
-                let program_as_cstring = &CString::new(path).unwrap();
+            let op_program = self.program.take();
+            let program = op_program.unwrap();
+            let path = program.path.clone();
+            let path = path.to_str().unwrap();
+            let program_as_cstring = &CString::new(path).unwrap();
+            self.program = Some(program);
 
-                match fork()? {
-                    ForkResult::Parent { child } => {
-                        debug!(
-                            "Continuing execution in parent process, new child has pid: {}",
-                            child
-                        );
-                        self.pid = child;
-                        self.state = DebuggerState::Running;
-                        self.wait_for_signal()
-                    }
-                    ForkResult::Child => {
-                        debug!("Executing new child process");
-
-                        ptrace::traceme().ok();
-                        execve(program_as_cstring, &[], &[]).ok().expect(
-                            "execve() operation failed",
-                        );
-                        unreachable!();
-                    }
+            match fork()? {
+                ForkResult::Parent { child } => {
+                    debug!(
+                        "Continuing execution in parent process, new child has pid: {}",
+                        child
+                    );
+                    self.pid = child;
+                    self.state = DebuggerState::Running;
+                    self.wait_for_signal()
                 }
-            } else {
-                Err(RdbgError::NoProgramLoaded)
+                ForkResult::Child => {
+                    debug!("Executing new child process");
+
+                    ptrace::traceme().ok();
+                    execve(program_as_cstring, &[], &[]).ok().expect(
+                        "execve() operation failed",
+                    );
+                    unreachable!();
+                }
             }
         } else {
             Err(RdbgError::NoProgramLoaded)
@@ -133,7 +133,7 @@ impl Debugger {
     }
 
     pub fn load_program(&mut self, program: Program) -> RdbgResult<()> {
-        info!("Loading program: {:?}", program);
+        info!("Loading program: {:?}", program.path);
         if let DebuggerState::Running = self.state {
             error!(
                 "Failed to load new program, tracee must be stopped before a new program can be loaded."
@@ -166,7 +166,15 @@ impl Debugger {
         match self.state {
             DebuggerState::ExecLoaded |
             DebuggerState::Running => {
-                println!("{:?}", self.program);
+                if let Some(ref prog) = self.program {
+                    println!(
+                        "status = {:?}\nexe = {:?}\nargs = {:?}\npid = {:?}",
+                        self.state,
+                        prog.path,
+                        prog.args,
+                        self.pid
+                    );
+                }
                 Ok(())
             }
             _ => Err(RdbgError::NoProgramLoaded),
@@ -232,9 +240,9 @@ impl Debugger {
         let mut count = 1;
         for (address, breakpoint) in &self.breakpoints {
             println!(
-                "Breakpoint {} is at {:?}, enabled = {}",
+                "Breakpoint {} is at {:#x}, enabled = {}",
                 count,
-                format!("{:#x}", address),
+                address,
                 breakpoint.is_enabled()
             );
             count += 1;
@@ -244,9 +252,9 @@ impl Debugger {
     pub fn set_breakpoint_at(&mut self, address: Address) -> RdbgResult<()> {
         if let DebuggerState::Running = self.state {
             println!(
-                "Breakpoint {} at {:?}",
+                "Breakpoint {} at {:#x}",
                 self.breakpoints.len() + 1,
-                format!("{:#x}", address)
+                address
             );
             self.breakpoints.insert(
                 address,
@@ -265,9 +273,9 @@ impl Debugger {
         if let DebuggerState::Running = self.state {
             if self.breakpoints.contains_key(&address) {
                 self.breakpoints.remove(&address);
-                info!("Removed breakpoint at {:?}", format!("{:#x}", address));
+                info!("Removed breakpoint at {:#x}", address);
             } else {
-                info!("No breakpoint found at {:?}", format!("{:#x}", address));
+                info!("No breakpoint found at {:#x}", address);
             }
             Ok(())
         } else {
@@ -282,7 +290,7 @@ impl Debugger {
                 bp.enable()?;
             }
         } else {
-            println!("No breakpoint at address {:?}", format!("{:#x}", address))
+            println!("No breakpoint at address {:#x}", address)
         }
         Ok(())
     }
@@ -294,13 +302,13 @@ impl Debugger {
                 bp.disable()?; // TODO: disable does not seem to actually modify the value
             }
         } else {
-            println!("No breakpoint at address {:?}", format!("{:#x}", address))
+            println!("No breakpoint at address {:#x}", address)
         }
         Ok(())
     }
 
     #[allow(deprecated)]
-    fn single_step_instruction(&self) -> RdbgResult<()> {
+    fn single_step_instruction(&mut self) -> RdbgResult<()> {
         unsafe {
             ptrace::ptrace(
                 PTRACE_SINGLESTEP,
@@ -340,9 +348,10 @@ impl Debugger {
     }
 
     #[allow(deprecated)]
-    fn wait_for_signal(&self) -> RdbgResult<()> {
+    fn wait_for_signal(&mut self) -> RdbgResult<()> {
         match waitpid(self.pid, None) {
             Ok(WaitStatus::Exited(_, code)) => {
+                self.state = DebuggerState::Exited;
                 info!("WaitStatus: Exited with status: {}", code);
                 println!(
                     "[Inferior (process {}) exited with status {}]",
@@ -352,6 +361,7 @@ impl Debugger {
                 Ok(())
             }
             Ok(WaitStatus::Signaled(_, signal, core_dump)) => {
+                self.state = DebuggerState::Exited;
                 info!(
                     "WaitStatus: Process killed by signal: {:?}, core dumped?: {}",
                     signal,
@@ -396,10 +406,7 @@ impl Debugger {
 
         if siginfo.si_code == 0x80 {
             self.set_pc(self.get_pc().unwrap() - 1); // move the pc back one instruction
-            info!(
-                "Hit breakpoint at address {:?}",
-                format!("{:#x}", self.get_pc().unwrap())
-            );
+            info!("Hit breakpoint at address {:#x}", self.get_pc().unwrap());
         }
     }
 }

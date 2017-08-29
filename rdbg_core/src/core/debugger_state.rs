@@ -1,4 +1,5 @@
 /// Used for tracking the current state the debugger is running in.
+#[derive(Debug)]
 pub enum DebuggerState {
     /// The debugger was started without a program and no program has been loaded.
     Empty,

@@ -120,7 +120,7 @@ fn command_start(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> 
 
 fn command_entry(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling entry command");
-    println!("Entry: {:?}", format!("{:#x}", dbg.get_entrypoint()?));
+    println!("Entry: {:#x}", dbg.get_entrypoint()?);
     Ok(())
 }
 
@@ -192,9 +192,9 @@ fn command_memory(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()>
         address = Address::from_str_radix(args[1].split("x").skip(1).next().unwrap(), 16)?;
     }
 
-    debug!("Input Address: {:?}", format!("{:#x}", address));
+    debug!("Input Address: {:#x}", address);
     if args[0] == "read" || args[0] == "r" {
-        println!("{:?}", format!("{:#x}", dbg.read_memory(address)?));
+        println!("{:#x}", dbg.read_memory(address)?);
     }
     if args[0] == "write" || args[0] == "w" {
         dbg.write_memory(address, i64::from_str(args[2]).unwrap())?;

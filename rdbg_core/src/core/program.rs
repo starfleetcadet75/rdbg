@@ -4,7 +4,6 @@ use std::path::PathBuf;
 
 use util::error::RdbgResult;
 
-#[derive(Debug)]
 pub struct Program {
     pub path: PathBuf,
     pub args: Vec<String>,
