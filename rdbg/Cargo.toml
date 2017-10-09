@@ -8,7 +8,7 @@ documentation = "http://starfleetcadet75.github.io/rdbg/"
 license-file = "../LICENSE.md"
 readme = "../README.md"
 authors = ["starfleetcadet75 <starfleetcadet75@gmail.com>"]
-keywords = ["debugger", "gdb", "lldb"]
+keywords = ["debugger", "gdb", "lldb", "rust"]
 
 [[bin]]
 name = "rdbg"

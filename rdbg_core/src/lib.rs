@@ -10,8 +10,9 @@ extern crate goblin;
 
 pub mod core;
 pub mod commands;
-mod breakpoint;
 pub mod util;
+mod breakpoint;
+mod stubs;
 
 pub type Pid = nix::unistd::Pid;
 pub type Address = u64;

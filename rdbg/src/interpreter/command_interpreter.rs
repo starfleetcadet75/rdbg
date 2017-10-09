@@ -54,6 +54,7 @@ impl CommandInterpreter {
                 Ok(mut line) => {
                     debug!("User Command: {}", line);
 
+                    // Mimics GDB behavior by executing the last command
                     if line.is_empty() {
                         if rl.get_history().is_empty() {
                             break;
@@ -66,6 +67,7 @@ impl CommandInterpreter {
 
                     let v: Vec<&str> = line.split(' ').collect();
                     if v[0] == "quit" || v[0] == "q" {
+                        // Handle quit command
                         break;
                     }
 
@@ -89,14 +91,15 @@ impl CommandInterpreter {
         let cmd = input[0];
 
         if cmd == "help" {
-            // handle the help command
+            // Handle the help command
             if 1 < input.len() {
                 match self.commands.get(input[1]) {
-                    // print the help msg for the given cmd
+                    // Print the help msg for the given cmd
                     Some(cmd) => println!("{}", cmd.help),
                     None => self.handle_unknown_command(cmd),
                 }
             } else {
+                // TODO: Print a long general help message
                 println!("This is the help message.");
             }
         } else {

@@ -7,6 +7,8 @@ pub enum DebuggerState {
     ExecLoaded,
     /// The debugger is actively debugging a program.
     Running,
+    /// The debugger hit a breakpoint.
+    Breakpoint,
     /// The inferior process has exited.
     Exited,
 }
