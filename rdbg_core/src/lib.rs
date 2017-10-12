@@ -12,6 +12,9 @@ pub mod core;
 pub mod commands;
 pub mod util;
 mod breakpoint;
+mod loaders;
+mod formats;
+mod analysis;
 mod stubs;
 
 pub type Pid = nix::unistd::Pid;

@@ -23,6 +23,8 @@ pub enum RdbgError {
     NoProgramLoaded,
     /// Not enough arguments were given for the command.
     NotEnoughArgs,
+    /// Attempted to load a program which was not recognized or is currently unsupported.
+    UnsupportedProgram,
 }
 
 /// rdbg result type
@@ -54,6 +56,9 @@ impl Error for RdbgError {
             &RdbgError::IoError(_) => "An IO Error occurred",
             &RdbgError::NoProgramLoaded => "There is no program loaded",
             &RdbgError::NotEnoughArgs => "Not enough arguments were given for the command",
+            &RdbgError::UnsupportedProgram => {
+                "Attempted to load a program which was not recognized or is currently unsupported"
+            }
         }
     }
 }
@@ -69,6 +74,12 @@ impl fmt::Display for RdbgError {
             &RdbgError::NoProgramLoaded => write!(f, "There is no program loaded"),
             &RdbgError::NotEnoughArgs => {
                 write!(f, "Not enough arguments were given for the command")
+            }
+            &RdbgError::UnsupportedProgram => {
+                write!(
+                    f,
+                    "Attempted to load a program which was not recognized or is currently unsupported"
+                )
             }
         }
     }

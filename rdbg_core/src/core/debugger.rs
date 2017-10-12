@@ -3,18 +3,21 @@
 
 use fnv::FnvHashMap;
 
-use super::arch::Arch;
-use super::debugger_state::DebuggerState;
-use super::program::Program;
-use super::super::{Address, Pid};
-use super::super::breakpoint::breakpoint;
-use super::super::stubs::linux;
-use super::super::util::error::{RdbgError, RdbgResult};
+use std::path::Path;
+
+use {Address, Pid};
+use breakpoint::breakpoint;
+use core::arch::Arch;
+use core::debugger_state::DebuggerState;
+use core::project::Project;
+use loaders;
+use stubs::linux;
+use util::error::{RdbgError, RdbgResult};
 
 pub struct Debugger {
     pub pid: Pid,
     state: DebuggerState,
-    program: Option<Program>,
+    project: Option<Project>,
     breakpoints: FnvHashMap<Address, breakpoint::Breakpoint>,
 }
 
@@ -26,58 +29,37 @@ impl Debugger {
     /// Basic usage:
     ///
     /// ```
-    /// use rdbg_core::core::debugger;
-    /// let mut dbg = debugger::Debugger::new();
+    /// use rdbg_core::core::debugger::Debugger;
+    /// let mut dbg = Debugger::new();
     /// ```
     pub fn new() -> Debugger {
         Debugger {
             pid: Pid::from_raw(0),
             state: DebuggerState::Empty,
-            program: None,
+            project: None,
             breakpoints: FnvHashMap::default(),
         }
     }
 
-    pub fn load_program(&mut self, program: Program) -> RdbgResult<()> {
-        info!("Loading program: {:?}", program.path);
+    pub fn load_program(&mut self, path: &Path) -> RdbgResult<()> {
+        info!("Loading program: {:?}", path);
+
         if let DebuggerState::Running = self.state {
             error!(
                 "Failed to load new program, tracee must be stopped before a new program can be loaded."
             );
         } else {
-            // TODO: Use a loader with ELF data
-            self.program = Some(program);
+            let program = loaders::load(path)?;
+            self.project = Some(Project::new(path, program));
             self.state = DebuggerState::ExecLoaded;
         }
         Ok(())
     }
 
-    /// Starts debugging of the target given by the program path.
-    /// Passes any arguments given as parameters as arguments to the new program.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    ///
-    /// ```
-    /// use std::path::PathBuf;
-    /// use rdbg_core::core::debugger;
-    /// use rdbg_core::core::program;
-    ///
-    /// let path = "./hello_world.bin";
-    /// let program = program::Program::new(&PathBuf::from(path));
-    ///
-    /// let mut dbg = debugger::Debugger::new();
-    /// dbg.load_program(program);
-    ///
-    /// if let Err(error) = dbg.execute_target() {
-    ///    println!("Error: {}", error);
-    /// }
-    /// ```
     pub fn execute_target(&mut self) -> RdbgResult<()> {
         // Check if a program is loaded before trying to run
-        if let Some(ref prog) = self.program {
-            let path = prog.path.to_str().expect(
+        if let Some(ref project) = self.project {
+            let path = project.program_path.to_str().expect(
                 "failed to convert path to string",
             );
 
@@ -90,22 +72,6 @@ impl Debugger {
         }
     }
 
-    /// Attempts to attach the debugger to the running process with the given pid.
-    ///
-    /// # Examples
-    ///
-    /// Basic usage:
-    ///
-    /// ```
-    /// use rdbg_core::core::debugger;
-    /// use rdbg_core::Pid;
-    ///
-    /// let mut dbg = debugger::Debugger::new();
-    ///
-    /// if let Err(error) = dbg.attach_target(Pid::from_raw(1000)) {
-    ///    println!("Error: {}", error);
-    /// }
-    /// ```
     pub fn attach_target(&mut self, pid: Pid) -> RdbgResult<()> {
         self.pid = pid;
         linux::attach_target(self.pid)
@@ -115,8 +81,8 @@ impl Debugger {
         match self.state {
             DebuggerState::ExecLoaded |
             DebuggerState::Running => {
-                if let Some(ref program) = self.program {
-                    Ok(program.entry)
+                if let Some(ref project) = self.project {
+                    Ok(project.program.entry)
                 } else {
                     Err(RdbgError::NoProgramLoaded)
                 }
@@ -129,12 +95,11 @@ impl Debugger {
         match self.state {
             DebuggerState::ExecLoaded |
             DebuggerState::Running => {
-                if let Some(ref prog) = self.program {
+                if let Some(ref project) = self.project {
                     println!(
-                        "status = {:?}\nexe = {:?}\nargs = {:?}\npid = {:?}",
+                        "status = {:?}\nexe = {:?}\npid = {:?}",
                         self.state,
-                        prog.path,
-                        prog.args,
+                        project.program_path,
                         self.pid
                     );
                 }

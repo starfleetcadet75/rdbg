@@ -1,12 +1,12 @@
 use fnv::FnvHashMap;
 
-use std::path::PathBuf;
+use std::path::Path;
 use std::str::FromStr;
 
-use super::Address;
-use super::core::{debugger, program};
-use super::core::arch::Arch;
-use super::util::error::{RdbgError, RdbgResult};
+use Address;
+use core::arch::Arch;
+use core::debugger;
+use util::error::{RdbgError, RdbgResult};
 
 pub struct Command {
     /// The name of the command.
@@ -102,15 +102,13 @@ fn command_load(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {
     debug!("Calling load command");
     check_args_len(args.len(), 1)?;
 
-    let path = &PathBuf::from(args[0]);
+    let path = Path::new(args[0]);
     // if 1 < args.len() {
     //     args = &args[1..];
     // }
 
-    let mut program = program::Program::new(path);
     // program.args(args);
-    program.load()?;
-    dbg.load_program(program)
+    dbg.load_program(path)
 }
 
 fn command_start(args: &[&str], dbg: &mut debugger::Debugger) -> RdbgResult<()> {

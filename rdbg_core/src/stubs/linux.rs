@@ -10,9 +10,9 @@ use nix::unistd::{ForkResult, execve, fork};
 use std::ffi::CString;
 use std::ptr;
 
-use super::super::{Address, Pid};
-use super::super::core::debugger_state::DebuggerState;
-use super::super::util::error::{RdbgError, RdbgResult};
+use {Address, Pid};
+use core::debugger_state::DebuggerState;
+use util::error::{RdbgError, RdbgResult};
 
 pub fn execute_target(path: &str) -> RdbgResult<(Pid, DebuggerState)> {
     let program_as_cstring = &CString::new(path).expect("failed to convert path to CString");

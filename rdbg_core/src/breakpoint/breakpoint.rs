@@ -4,8 +4,8 @@ use nix::sys::ptrace::ptrace::*;
 
 use std::ptr;
 
-use super::super::{Address, Pid};
-use super::super::util::error::{RdbgError, RdbgResult};
+use {Address, Pid};
+use util::error::{RdbgError, RdbgResult};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Breakpoint {
