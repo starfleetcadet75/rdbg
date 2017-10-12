@@ -6,7 +6,7 @@ use fnv::FnvHashMap;
 use std::path::Path;
 
 use {Address, Pid};
-use breakpoint::breakpoint;
+use breakpoint::breakpoint::Breakpoint;
 use core::arch::Arch;
 use core::debugger_state::DebuggerState;
 use core::project::Project;
@@ -18,7 +18,7 @@ pub struct Debugger {
     pub pid: Pid,
     state: DebuggerState,
     project: Option<Project>,
-    breakpoints: FnvHashMap<Address, breakpoint::Breakpoint>,
+    breakpoints: FnvHashMap<Address, Breakpoint>,
 }
 
 impl Debugger {
@@ -120,6 +120,7 @@ impl Debugger {
             if let DebuggerState::Breakpoint = self.state {
                 self.set_pc(self.get_pc().unwrap() - 1); // move the pc back one instruction
                 info!("Hit breakpoint at address {:#x}", self.get_pc().unwrap());
+                self.state = DebuggerState::Running;
             }
 
             Ok(())
@@ -169,10 +170,7 @@ impl Debugger {
             );
             self.breakpoints.insert(
                 address,
-                breakpoint::Breakpoint::new(
-                    self.pid,
-                    address,
-                ),
+                Breakpoint::new(self.pid, address),
             );
             Ok(())
         } else {
@@ -223,6 +221,7 @@ impl Debugger {
         if let DebuggerState::Breakpoint = self.state {
             self.set_pc(self.get_pc().unwrap() - 1); // move the pc back one instruction
             info!("Hit breakpoint at address {:#x}", self.get_pc().unwrap());
+            self.state = DebuggerState::Running;
         }
         Ok(())
     }

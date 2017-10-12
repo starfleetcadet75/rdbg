@@ -12,7 +12,11 @@ impl ProgramLoader for ElfLoader {
         let binary = goblin::elf::Elf::parse(&buffer)?;
 
         program.entry = binary.entry;
+        program.is_64 = binary.is_64;
+        program.is_lib = binary.is_lib;
 
+
+        debug!("elf: {:#?}", &binary);
         Ok(program)
     }
 }
