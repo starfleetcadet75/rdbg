@@ -1,14 +1,14 @@
 use goblin;
 
-use core::program::Program;
+use formats::elf_program::ElfProgram;
 use loaders::ProgramLoader;
 use util::error::RdbgResult;
 
 pub struct ElfLoader;
 
 impl ProgramLoader for ElfLoader {
-    fn load(buffer: &[u8]) -> RdbgResult<(Program)> {
-        let mut program = Program::new();
+    fn load(buffer: &[u8]) -> RdbgResult<ElfProgram> {
+        let mut program = ElfProgram::new();
         let binary = goblin::elf::Elf::parse(&buffer)?;
 
         program.entry = binary.entry;

@@ -1,38 +1,27 @@
-use fnv::FnvHashMap;
 use rustyline::{CompletionType, Config, Editor};
 use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
 
 use std::error::Error;
+use std::path::Path;
 
-use rdbg_core::commands::Command;
-use rdbg_core::core::debugger;
-use rdbg_core::util::error::RdbgResult;
+use rdbg_core::core::profile::Profile;
+use rpc::SyncClient;
 
 static PROMPT: &'static str = "\x1b[1;32mrdbg>\x1b[0m ";
 
-pub struct CommandInterpreter {
-    dbg: debugger::Debugger,
-    commands: FnvHashMap<&'static str, Command>,
+pub struct Interpreter {
+    client: SyncClient,
 }
 
-impl CommandInterpreter {
-    pub fn new() -> CommandInterpreter {
-        CommandInterpreter {
-            dbg: debugger::Debugger::new(),
-            commands: Command::map(),
-        }
-    }
+impl Interpreter {
+    pub fn new(client: SyncClient) -> Interpreter { Interpreter { client: client } }
 
-    pub fn set_program(&mut self, args: &[&str]) -> RdbgResult<()> {
-        let load_cmd = self.commands.get("load").unwrap(); // safe unwrap, load is a command
-        (load_cmd.execute)(args, &mut self.dbg)
-    }
-
-    pub fn read_line(&mut self) -> Result<(), Box<Error>> {
+    pub fn read_line(&self) -> Result<(), Box<Error>> {
         let history_file = "/tmp/.rdbg_history";
         debug!("Starting debugger session");
 
+        // Setup the rustyline configuration
         let config = Config::builder()
             .history_ignore_space(true)
             .completion_type(CompletionType::List)
@@ -41,6 +30,7 @@ impl CommandInterpreter {
         let completer = FilenameCompleter::new();
         rl.set_completer(Some(completer)); // TODO: rustyline only supports using one completer
 
+        // Attempt to load the history file
         if let Err(_) = rl.load_history(history_file) {
             info!(
                 "No previous command history file found at: {}",
@@ -48,11 +38,12 @@ impl CommandInterpreter {
             );
         }
 
+        // Main interpreter loop
         loop {
             let readline = rl.readline(PROMPT);
             match readline {
                 Ok(mut line) => {
-                    debug!("User Command: {}", line);
+                    debug!("User entered command: {}", line);
 
                     // Mimics GDB behavior by executing the last command
                     if line.is_empty() {
@@ -65,9 +56,10 @@ impl CommandInterpreter {
                         rl.add_history_entry(line.as_ref());
                     }
 
+                    // Split the input by spaces
                     let v: Vec<&str> = line.split(' ').collect();
                     if v[0] == "quit" || v[0] == "q" {
-                        // Handle quit command
+                        // Handle quit command in the first word
                         break;
                     }
 
@@ -81,44 +73,36 @@ impl CommandInterpreter {
                 }
             }
         }
+
+        // Save the history after exiting loop
         rl.save_history(history_file).expect(
             "Unable to write history file",
         );
         Ok(())
     }
 
-    fn handle_command(&mut self, input: Vec<&str>) {
+    fn handle_command(&self, input: Vec<&str>) {
         let cmd = input[0];
-
-        if cmd == "help" {
-            // Handle the help command
-            if 1 < input.len() {
-                match self.commands.get(input[1]) {
-                    // Print the help msg for the given cmd
-                    Some(cmd) => println!("{}", cmd.help),
-                    None => self.handle_unknown_command(cmd),
-                }
-            } else {
-                // TODO: Print a long general help message
-                println!("This is the help message.");
-            }
+        if cmd == "run" {
+            self.run();
+        } else if cmd == "load" {
+            self.load_profile_command(Profile::new(Path::new(input[1])));
         } else {
-            match self.commands.get(cmd) {
-                Some(cmd) => {
-                    let mut args = input.as_slice();
+            self.handle_unknown_command(cmd);
+        }
+    }
 
-                    // handle other args to the command that need to be forwarded along
-                    if 0 < args.len() {
-                        args = &args[1..];
-                    }
+    pub fn run(&self) {
+        match self.client.run() {
+            Ok(result) => println!("{}", result),
+            Err(error) => println!("error: {}", error),
+        }
+    }
 
-                    // try to execute the command with the given args
-                    if let Err(e) = (cmd.execute)(args, &mut self.dbg) {
-                        error!("Error ({}) executing command: {}", e, cmd.name);
-                    }
-                }
-                None => self.handle_unknown_command(cmd),
-            }
+    pub fn load_profile_command(&self, profile: Profile) {
+        match self.client.new_project(profile) {
+            Ok(result) => println!("{}", result),
+            Err(error) => println!("error: {}", error),
         }
     }
 

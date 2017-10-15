@@ -1,5 +1,4 @@
-pub mod debugger;
-pub mod debugger_state;
-pub mod arch;
-pub mod program;
+pub mod profile;
 pub mod project;
+pub mod process;
+pub mod debugger;

@@ -2,6 +2,7 @@
 
 use libc;
 use libc::c_void;
+use libc::siginfo_t;
 use nix::sys::ptrace;
 use nix::sys::ptrace::ptrace::*;
 use nix::sys::wait::{WaitStatus, waitpid};
@@ -11,10 +12,10 @@ use std::ffi::CString;
 use std::ptr;
 
 use {Address, Pid};
-use core::debugger_state::DebuggerState;
+use core::process::ProcessEvent;
 use util::error::{RdbgError, RdbgResult};
 
-pub fn execute_target(path: &str) -> RdbgResult<(Pid, DebuggerState)> {
+pub fn execute(path: &str) -> RdbgResult<Pid> {
     let program_as_cstring = &CString::new(path).expect("failed to convert path to CString");
 
     match fork()? {
@@ -23,10 +24,8 @@ pub fn execute_target(path: &str) -> RdbgResult<(Pid, DebuggerState)> {
                 "Continuing execution in parent process, new child has pid: {}",
                 child
             );
-            match wait_for_signal(child) {
-                Ok(state) => Ok((child, state)),
-                Err(_) => Err(RdbgError::NixError),
-            }
+            wait_for_signal(child)?;
+            Ok(child)
         }
         ForkResult::Child => {
             debug!("Executing new child process");
@@ -40,7 +39,7 @@ pub fn execute_target(path: &str) -> RdbgResult<(Pid, DebuggerState)> {
     }
 }
 
-pub fn attach_target(pid: Pid) -> RdbgResult<()> {
+pub fn attach(pid: Pid) -> RdbgResult<()> {
     match ptrace::attach(pid) {
         Ok(_) => Ok(()),
         Err(_) => Err(RdbgError::NixError),
@@ -48,13 +47,13 @@ pub fn attach_target(pid: Pid) -> RdbgResult<()> {
 }
 
 #[allow(deprecated)]
-pub fn continue_execution(pid: Pid) -> RdbgResult<(DebuggerState)> {
+pub fn continue_execution(pid: Pid) -> RdbgResult<ProcessEvent> {
     ptrace::cont(pid, None)?;
     wait_for_signal(pid)
 }
 
 #[allow(deprecated)]
-pub fn single_step_instruction(pid: Pid) -> RdbgResult<(DebuggerState)> {
+pub fn single_step_instruction(pid: Pid) -> RdbgResult<ProcessEvent> {
     unsafe {
         ptrace::ptrace(PTRACE_SINGLESTEP, pid, ptr::null_mut(), ptr::null_mut())?;
         wait_for_signal(pid)
@@ -92,12 +91,13 @@ pub fn write_memory(pid: Pid, address: Address, data: i64) -> RdbgResult<()> {
 }
 
 #[allow(deprecated)]
-fn wait_for_signal(pid: Pid) -> RdbgResult<(DebuggerState)> {
+fn wait_for_signal(pid: Pid) -> RdbgResult<ProcessEvent> {
     match waitpid(pid, None) {
         Ok(WaitStatus::Exited(_, code)) => {
             info!("WaitStatus: Exited with status: {}", code);
             println!("[Inferior (process {}) exited with status {}]", pid, code);
-            Ok((DebuggerState::Exited))
+
+            Ok(ProcessEvent::Exited(pid, code))
         }
         Ok(WaitStatus::Signaled(_, signal, core_dump)) => {
             info!(
@@ -105,36 +105,59 @@ fn wait_for_signal(pid: Pid) -> RdbgResult<(DebuggerState)> {
                 signal,
                 core_dump
             );
-            Ok((DebuggerState::Exited))
+            Ok(ProcessEvent::Signaled(signal))
         }
         Ok(WaitStatus::Stopped(_, _)) => {
+            info!("IN HERE");
             match ptrace::getsiginfo(pid) {
-                Ok(siginfo) if siginfo.si_signo == libc::SIGTRAP => {
-                    debug!("Recieved SIGTRAP");
-                    debug!("si_code: {:?}", siginfo.si_code);
-
-                    if siginfo.si_code == 0x80 {
-                        Ok((DebuggerState::Breakpoint))
-                    } else {
-                        Ok((DebuggerState::Running))
-                    }
-                }
-                Ok(siginfo) if siginfo.si_signo == libc::SIGSEGV => {
-                    info!("Recieved SIGSEGV, reason: {}", siginfo.si_code);
-                    Ok((DebuggerState::Exited))
-                }
-                Ok(siginfo) => {
-                    debug!("Recieved {}", siginfo.si_signo);
-                    Ok((DebuggerState::Running))
-                }
+                Ok(siginfo) => handle_siginfo(siginfo),
                 Err(_) => Err(RdbgError::NixError),
             }
         }
+        // TODO: Check if there is a WPTRACEEVENT macro to handle
         Ok(WaitStatus::Continued(_)) => {
             info!("WaitStatus: Continued");
-            Ok((DebuggerState::Running))
+            Ok(ProcessEvent::Continued)
         }
         Ok(_) => panic!("Unknown waitstatus"),
         Err(_) => Err(RdbgError::NixError),
+    }
+}
+
+fn handle_siginfo(siginfo: siginfo_t) -> RdbgResult<ProcessEvent> {
+    match siginfo.si_signo {
+        libc::SIGTRAP => {
+            info!("Recieved SIGTRAP\nsi_code: {:?}", siginfo.si_code);
+
+            if siginfo.si_code == 0x80 {
+                Ok(ProcessEvent::Breakpoint)
+            } else {
+                Ok(ProcessEvent::Stopped(false))
+            }
+        }
+        libc::SIGSEGV => {
+            info!("Recieved SIGSEGV, reason: {}", siginfo.si_code);
+            Ok(ProcessEvent::Stopped(true))
+        }
+        libc::SIGBUS => {
+            info!("Recieved SIGBUS, memory fault");
+            Ok(ProcessEvent::Stopped(true))
+        }
+        libc::SIGFPE => {
+            info!("Recieved SIGFPE, math error");
+            Ok(ProcessEvent::Stopped(true))
+        }
+        libc::SIGCHLD => {
+            info!("Recieved SIGCHLD, child exited");
+            Ok(ProcessEvent::Stopped(true))
+        }
+        libc::SIGABRT => {
+            info!("Recieved SIGABRT, aborted");
+            Ok(ProcessEvent::Stopped(true))
+        }
+        _ => {
+            debug!("Recieved {}", siginfo.si_signo);
+            Ok(ProcessEvent::Continued)
+        }
     }
 }

@@ -5,17 +5,17 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use core::program::Program;
+use formats::elf_program::ElfProgram;
 use util::error::{RdbgError, RdbgResult};
 
-mod elf;
+mod elf_loader;
 
 pub trait ProgramLoader {
-    fn load(buffer: &[u8]) -> RdbgResult<(Program)>;
+    fn load(buffer: &[u8]) -> RdbgResult<ElfProgram>;
 }
 
 // TODO: Make this a macro maybe?
-pub fn load(path: &Path) -> RdbgResult<(Program)> {
+pub fn load(path: &Path) -> RdbgResult<ElfProgram> {
     let mut fd = File::open(path)?;
     let peek = goblin::peek(&mut fd)?;
 
@@ -27,7 +27,7 @@ pub fn load(path: &Path) -> RdbgResult<(Program)> {
         fd.read_to_end(&mut buffer)?;
 
         match peek {
-            Hint::Elf(_) => elf::ElfLoader::load(&buffer),
+            Hint::Elf(_) => elf_loader::ElfLoader::load(&buffer),
             Hint::PE => {
                 error!("PE programs are not yet supported by rdbg");
                 Err(RdbgError::UnsupportedProgram)
