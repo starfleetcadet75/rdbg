@@ -1,0 +1,67 @@
+<!-- Please search to check that your issue has not been created already. -->
+<!-- Replace the empty checkbox [ ] below with a checked one [x] if you have already searched for your issue. -->
+- [ ] I agree that I have searched opened and closed issues to prevent duplicates.
+
+--------------------
+
+
+
+## Description
+<!-- Briefly summarize/describe the issue that you are experiencing below. -->
+Replace me
+
+
+
+## Environment info
+<!-- To understand where your issue originates, please include some relevant information about your environment. -->
+
+
+
+## Steps to reproduce
+<!-- If possible, please list the steps to reproduce ("trigger") your issue below. -->
+1. Replace me
+2. Replace me
+3. ...
+
+
+
+## Behavior
+<!-- Describe the behavior you expect your steps should yield (i.e., correct behavior). -->
+- **Expected behavior**:
+Replace me
+
+<!-- Describe the behavior you observed when running your steps (i.e., buggy behavior). -->
+- **Actual behavior**:
+Replace me
+
+<!-- **Logs?** Logging output can help track down issues faster. If possible, include the relevant output from the rdbg log. Please wrap your code in code blocks using triple back-ticks ``` to increase readability. -->
+```
+Replace me
+```
+
+<!-- **Solution?** Have a solution in mind? Propose your solution below. -->
+- **Proposed solution**:
+Replace me
+
+<!-- **Screenshots?** Make it easier to get your point across with screenshots. You can drag & drop or paste your images below. -->
+
+
+
+## Optional references
+<!-- If you have found issues or pull requests that are related to or blocking this issue, please link them below. See https://help.github.com/articles/autolinked-references-and-urls/ for more options. You can also link related code snippets by providing the permalink. See https://help.github.com/articles/creating-a-permanent-link-to-a-code-snippet/ for more information. -->
+
+Related to:
+- #0000 Remove me
+- Replace me
+- ...
+
+Blocked by:
+- #0000 Remove me
+- ...
+
+
+
+## Optional extras
+<!-- If you have other relevant information not found in other sections, you can include it below. -->
+Replace me
+
