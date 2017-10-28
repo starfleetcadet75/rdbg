@@ -33,5 +33,6 @@ See the [LICENSE file](LICENSE.md).
 [Writing a Linux Debugger](https://blog.tartanllama.xyz/writing-a-linux-debugger-setup.html)    
 [Playing with ptrace](https://www.linuxjournal.com/article/6100)    
 [Loading and ptrace'ing a process in Rust](http://system.joekain.com/2015/07/15/rust-load-and-ptrace.html)    
+[Threads and fork(): think twice before mixing them](http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them)    
 [nix-rust](https://github.com/nix-rust/nix)    
 [gtrace](https://github.com/geofft/gtrace)    
