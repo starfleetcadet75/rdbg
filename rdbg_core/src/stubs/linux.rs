@@ -1,4 +1,7 @@
-//! OS specific stub for Linux systems.
+//! OS specific stub for Linux systems using the `ptrace()` syscall.
+//!
+//! Refer to https://github.com/nix-rust/nix/blob/master/src/sys/ptrace.rs for Nix ptrace usage.
+//! For detailed description of the ptrace requests, consult `man ptrace`.
 
 use libc;
 use libc::c_void;
@@ -18,6 +21,8 @@ use util::error::{RdbgError, RdbgResult};
 pub fn execute(path: &str) -> RdbgResult<Pid> {
     let program_as_cstring = &CString::new(path).expect("failed to convert path to CString");
 
+    // To start tracing a new process, fork the debugger and call the `execve()` syscall in
+    // the new child. The child is then replaced with the tracee process.
     match fork()? {
         ForkResult::Parent { child } => {
             debug!(
@@ -92,15 +97,19 @@ pub fn write_memory(pid: Pid, address: Address, data: i64) -> RdbgResult<()> {
 
 #[allow(deprecated)]
 fn wait_for_signal(pid: Pid) -> RdbgResult<ProcessEvent> {
+    // The `waitpid()` function is used to wait on and obtain status information from child processes.
+    // Each status (other than `StillAlive`) describes a state transition
+    // in a child process `Pid`, such as the process exiting or stopping,
+    // plus additional data about the transition if any.
     match waitpid(pid, None) {
         Ok(WaitStatus::Exited(_, code)) => {
-            info!("WaitStatus: Exited with status: {}", code);
+            debug!("WaitStatus: Exited with status: {}", code);
             println!("[Inferior (process {}) exited with status {}]", pid, code);
 
             Ok(ProcessEvent::Exited(pid, code))
         }
         Ok(WaitStatus::Signaled(_, signal, core_dump)) => {
-            info!(
+            debug!(
                 "WaitStatus: Process killed by signal: {:?}, core dumped?: {}",
                 signal,
                 core_dump
@@ -108,7 +117,6 @@ fn wait_for_signal(pid: Pid) -> RdbgResult<ProcessEvent> {
             Ok(ProcessEvent::Signaled(signal))
         }
         Ok(WaitStatus::Stopped(_, _)) => {
-            info!("IN HERE");
             match ptrace::getsiginfo(pid) {
                 Ok(siginfo) => handle_siginfo(siginfo),
                 Err(_) => Err(RdbgError::NixError),
@@ -116,7 +124,7 @@ fn wait_for_signal(pid: Pid) -> RdbgResult<ProcessEvent> {
         }
         // TODO: Check if there is a WPTRACEEVENT macro to handle
         Ok(WaitStatus::Continued(_)) => {
-            info!("WaitStatus: Continued");
+            debug!("WaitStatus: Continued");
             Ok(ProcessEvent::Continued)
         }
         Ok(_) => panic!("Unknown waitstatus"),

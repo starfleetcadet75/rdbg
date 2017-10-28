@@ -1,7 +1,7 @@
 //! # rdbg_core
 //!
 //! The `rdbg_core` library contains the core functionality of the debugger.
-//! Custom clients can be written around the core.
+
 #[macro_use]
 extern crate log;
 extern crate simplelog;
@@ -20,5 +20,6 @@ mod formats;
 mod analysis;
 mod stubs;
 
+// TODO: Better way to generalize these for different platforms
 pub type Pid = nix::unistd::Pid;
 pub type Address = u64;
