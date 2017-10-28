@@ -13,6 +13,8 @@ _**NOTE:** rdbg is in the very early stages of development. This may or may not 
 
 Tested on Arch Linux and Ubuntu. Due to the direct use of the ptrace syscall, rdbg currently can only function on systems with ptrace.
 
+Requires building with the Rust nightly toolchain.
+
 ```
 $ git clone https://github.com/starfleetcadet75/rdbg.git
 $ cd rdbg
