@@ -22,4 +22,4 @@ mod stubs;
 
 // TODO: Better way to generalize these for different platforms
 pub type Pid = nix::unistd::Pid;
-pub type Address = u64;
+pub type Word = usize;

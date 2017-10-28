@@ -3,7 +3,7 @@
 
 use nix::sys::signal::Signal;
 
-use {Address, Pid};
+use {Pid, Word};
 use core::profile::Profile;
 use stubs::linux;
 use util::error::RdbgResult;
@@ -16,7 +16,7 @@ pub enum ProcessEvent {
     Breakpoint,
     Stopped(bool),
     Signaled(Signal),
-    Exited(Pid, i8),
+    Exited(Pid, i32),
 }
 
 /// A `Process` traced by the `Debugger`.
@@ -76,11 +76,29 @@ impl Process {
         }
     }
 
-    pub fn read_memory(&self, address: Address) -> RdbgResult<i64> {
+    pub fn read_memory(&self, address: Word) -> RdbgResult<Word> {
         linux::read_memory(self.pid, address)
     }
 
-    pub fn write_memory(&self, address: Address, data: i64) -> RdbgResult<()> {
+    pub fn write_memory(&self, address: Word, data: Word) -> RdbgResult<()> {
         linux::write_memory(self.pid, address, data)
     }
+
+    // pub fn get_registers(&self) -> RdbgResult<()> {
+    // TODO: check if this fn is ever made public
+    // let regs = ptrace::ptrace_get_data::<user_regs_struct>(PTRACE_GETREGS, pid);
+    // println!("regs: {:#?}", regs);
+    // let mut registers: user_regs_struct = unsafe { mem::zeroed() };
+    // let register_ptr: *mut c_void = &mut registers as *mut _ as *mut c_void;
+
+    // unsafe {
+    //     ptrace::ptrace(PTRACE_GETREGS, pid, ptr::null_mut(), register_ptr)?;
+    // }
+
+    // let reg = match register {
+    //     Register::R15 => registers.r15,
+    //     Register::R14 => registers.r14,
+    //     Register::R13 => registers.r13,
+
+    // }
 }

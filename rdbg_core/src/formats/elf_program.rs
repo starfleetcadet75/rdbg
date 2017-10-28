@@ -1,8 +1,7 @@
-use Address;
 
 #[derive(Debug)]
 pub struct ElfProgram {
-    pub entry: Address,
+    pub entry: u64,
     pub is_64: bool,
     pub is_lib: bool,
 }

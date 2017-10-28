@@ -16,5 +16,5 @@ tarpc-plugins = "0.2.0"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-nix = { git = "https://github.com/nix-rust/nix", branch = "master" }
-libc = { git = "https://github.com/rust-lang/libc", branch = "master" }
+nix = { git = "https://github.com/starfleetcadet75/nix", branch = "master" }
+libc =  { git = "https://github.com/rust-lang/libc", branch = "master" }

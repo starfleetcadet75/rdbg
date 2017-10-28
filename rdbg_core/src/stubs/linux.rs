@@ -4,17 +4,16 @@
 //! For detailed description of the ptrace requests, consult `man ptrace`.
 
 use libc;
-use libc::c_void;
 use libc::siginfo_t;
 use nix::sys::ptrace;
-use nix::sys::ptrace::ptrace::*;
+use nix::sys::ptrace::Request;
 use nix::sys::wait::{WaitStatus, waitpid};
 use nix::unistd::{ForkResult, execve, fork};
 
 use std::ffi::CString;
 use std::ptr;
 
-use {Address, Pid};
+use {Pid, Word};
 use core::process::ProcessEvent;
 use util::error::{RdbgError, RdbgResult};
 
@@ -51,7 +50,6 @@ pub fn attach(pid: Pid) -> RdbgResult<()> {
     }
 }
 
-#[allow(deprecated)]
 pub fn continue_execution(pid: Pid) -> RdbgResult<ProcessEvent> {
     ptrace::cont(pid, None)?;
     wait_for_signal(pid)
@@ -60,42 +58,34 @@ pub fn continue_execution(pid: Pid) -> RdbgResult<ProcessEvent> {
 #[allow(deprecated)]
 pub fn single_step_instruction(pid: Pid) -> RdbgResult<ProcessEvent> {
     unsafe {
-        ptrace::ptrace(PTRACE_SINGLESTEP, pid, ptr::null_mut(), ptr::null_mut())?;
+        ptrace::ptrace(
+            Request::PTRACE_SINGLESTEP,
+            pid,
+            ptr::null_mut(),
+            ptr::null_mut(),
+        )?;
         wait_for_signal(pid)
     }
 }
 
-#[allow(deprecated)]
-pub fn read_memory(pid: Pid, address: Address) -> RdbgResult<i64> {
+pub fn read_memory(pid: Pid, address: Word) -> RdbgResult<Word> {
     unsafe {
-        match ptrace::ptrace(
-            PTRACE_PEEKDATA,
-            pid,
-            address as *mut c_void,
-            ptr::null_mut(),
-        ) {
+        match ptrace::peekdata(pid, address) {
             Ok(data) => Ok(data),
             Err(_) => Err(RdbgError::NixError),
         }
     }
 }
 
-#[allow(deprecated)]
-pub fn write_memory(pid: Pid, address: Address, data: i64) -> RdbgResult<()> {
+pub fn write_memory(pid: Pid, address: Word, data: Word) -> RdbgResult<()> {
     unsafe {
-        match ptrace::ptrace(
-            PTRACE_POKEDATA,
-            pid,
-            address as *mut c_void,
-            data as *mut c_void,
-        ) {
+        match ptrace::pokedata(pid, address, data) {
             Ok(_) => Ok(()),
             Err(_) => Err(RdbgError::NixError),
         }
     }
 }
 
-#[allow(deprecated)]
 fn wait_for_signal(pid: Pid) -> RdbgResult<ProcessEvent> {
     // The `waitpid()` function is used to wait on and obtain status information from child processes.
     // Each status (other than `StillAlive`) describes a state transition

@@ -1,6 +1,5 @@
 // use fnv::FnvHashMap;
 
-use {Address, Pid};
 use core::process::{Process, ProcessEvent};
 use core::profile::Profile;
 use core::project::Project;
