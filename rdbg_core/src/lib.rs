@@ -5,9 +5,6 @@
 #[macro_use]
 extern crate log;
 extern crate simplelog;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
 extern crate nix;
 extern crate libc;
 extern crate fnv;

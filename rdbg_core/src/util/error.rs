@@ -21,6 +21,10 @@ pub enum RdbgError {
     IoError(io::Error),
     /// No program has been loaded by the debugger.
     NoProgramLoaded,
+    /// There is no process currently being traced.
+    NoProcessRunning,
+    /// There is a process already being traced.
+    ProcessAlreadyRunning,
     /// Not enough arguments were given for the command.
     NotEnoughArgs,
     /// Attempted to load a program which was not recognized or is currently unsupported.
@@ -55,6 +59,8 @@ impl Error for RdbgError {
             &RdbgError::GoblinError => "Error in goblin",
             &RdbgError::IoError(_) => "An IO Error occurred",
             &RdbgError::NoProgramLoaded => "There is no program loaded",
+            &RdbgError::NoProcessRunning => "There is no process running",
+            &RdbgError::ProcessAlreadyRunning => "There is a process already being traced",
             &RdbgError::NotEnoughArgs => "Not enough arguments were given for the command",
             &RdbgError::UnsupportedProgram => {
                 "Attempted to load a program which was not recognized or is currently unsupported"
@@ -64,23 +70,5 @@ impl Error for RdbgError {
 }
 
 impl fmt::Display for RdbgError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &RdbgError::CommandError(ref cmd) => write!(f, "Error executing command: {}", cmd),
-            &RdbgError::NixError => write!(f, "Error calling nix function"),
-            &RdbgError::ParseError => write!(f, "Error parsing input value"),
-            &RdbgError::GoblinError => write!(f, "Error in goblin"),
-            &RdbgError::IoError(_) => write!(f, "An IO Error occurred"),
-            &RdbgError::NoProgramLoaded => write!(f, "There is no program loaded"),
-            &RdbgError::NotEnoughArgs => {
-                write!(f, "Not enough arguments were given for the command")
-            }
-            &RdbgError::UnsupportedProgram => {
-                write!(
-                    f,
-                    "Attempted to load a program which was not recognized or is currently unsupported"
-                )
-            }
-        }
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.description()) }
 }

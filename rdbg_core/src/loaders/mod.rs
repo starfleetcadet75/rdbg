@@ -1,5 +1,4 @@
-use goblin;
-use goblin::Hint;
+use goblin::{self, Hint};
 
 use std::fs::File;
 use std::io::Read;

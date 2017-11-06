@@ -18,10 +18,5 @@ clap = "~2.19.0"
 simplelog = "^0.4.2"
 log = "0.3.8"
 fnv = "1.0.3"
-tarpc = "0.9.0"
-tarpc-plugins = "0.2.0"
-serde = "1.0"
-serde_derive = "1.0"
-serde_json = "1.0"
 rustyline = { git = "https://github.com/kkawakam/rustyline", branch = "master" }
 rdbg_core = { path = "../rdbg_core" }

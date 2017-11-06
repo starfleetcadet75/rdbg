@@ -3,10 +3,9 @@
 //! Refer to https://github.com/nix-rust/nix/blob/master/src/sys/ptrace.rs for Nix ptrace usage.
 //! For detailed description of the ptrace requests, consult `man ptrace`.
 
-use libc;
-use libc::siginfo_t;
-use nix::sys::ptrace;
-use nix::sys::ptrace::Request;
+use libc::{self, siginfo_t};
+use nix::sys::ptrace::{self, Register, Request};
+use nix::sys::signal::Signal;
 use nix::sys::wait::{WaitStatus, waitpid};
 use nix::unistd::{ForkResult, execve, fork};
 
@@ -43,6 +42,7 @@ pub fn execute(path: &str) -> RdbgResult<Pid> {
     }
 }
 
+/// Attach to a running process, as with `ptrace(PTRACE_ATTACH, ...)`.
 pub fn attach(pid: Pid) -> RdbgResult<()> {
     match ptrace::attach(pid) {
         Ok(_) => Ok(()),
@@ -50,6 +50,15 @@ pub fn attach(pid: Pid) -> RdbgResult<()> {
     }
 }
 
+/// Detaches the current running process, as with `ptrace(PTRACE_DETACH, ...)`.
+pub fn detach(pid: Pid) -> RdbgResult<()> {
+    match ptrace::detach(pid) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(RdbgError::NixError),
+    }
+}
+
+/// Restart the stopped tracee process, as with `ptrace(PTRACE_CONT, ...)`.
 pub fn continue_execution(pid: Pid) -> RdbgResult<ProcessEvent> {
     ptrace::cont(pid, None)?;
     wait_for_signal(pid)
@@ -84,6 +93,28 @@ pub fn write_memory(pid: Pid, address: Word, data: Word) -> RdbgResult<()> {
             Err(_) => Err(RdbgError::NixError),
         }
     }
+}
+
+pub fn get_register(pid: Pid, register: Register) -> RdbgResult<Word> {
+    match ptrace::peekuser(pid, register) {
+        Ok(data) => Ok(data),
+        Err(_) => Err(RdbgError::NixError),
+    }
+}
+
+pub fn set_register(pid: Pid, register: Register, data: Word) -> RdbgResult<()> {
+    unsafe {
+        match ptrace::pokeuser(pid, register, data) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(RdbgError::NixError),
+        }
+    }
+}
+
+/// Sends a SIGKILL to the tracee and waits for it to stop.
+pub fn kill(pid: Pid) -> RdbgResult<ProcessEvent> {
+    ptrace::cont(pid, Signal::SIGKILL)?;
+    wait_for_signal(pid)
 }
 
 fn wait_for_signal(pid: Pid) -> RdbgResult<ProcessEvent> {

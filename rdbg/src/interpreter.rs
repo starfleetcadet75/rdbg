@@ -5,19 +5,19 @@ use rustyline::error::ReadlineError;
 use std::error::Error;
 use std::path::Path;
 
+use rdbg_core::core::debugger::Debugger;
 use rdbg_core::core::profile::Profile;
-use rpc::SyncClient;
 
 static PROMPT: &'static str = "\x1b[1;32mrdbg>\x1b[0m ";
 
 pub struct Interpreter {
-    client: SyncClient,
+    debugger: Debugger,
 }
 
 impl Interpreter {
-    pub fn new(client: SyncClient) -> Interpreter { Interpreter { client: client } }
+    pub fn new() -> Interpreter { Interpreter { debugger: Debugger::new() } }
 
-    pub fn read_line(&self) -> Result<(), Box<Error>> {
+    pub fn read_line(&mut self) -> Result<(), Box<Error>> {
         let history_file = "/tmp/.rdbg_history";
         debug!("Starting debugger session");
 
@@ -27,6 +27,7 @@ impl Interpreter {
             .completion_type(CompletionType::List)
             .build();
         let mut rl = Editor::with_config(config);
+
         let completer = FilenameCompleter::new();
         rl.set_completer(Some(completer)); // TODO: rustyline only supports using one completer
 
@@ -48,7 +49,7 @@ impl Interpreter {
                     // Mimics GDB behavior by executing the last command
                     if line.is_empty() {
                         if rl.get_history().is_empty() {
-                            break;
+                            continue;
                         } else {
                             line = rl.get_history().last().unwrap().clone(); // safe unwrap
                         }
@@ -81,7 +82,7 @@ impl Interpreter {
         Ok(())
     }
 
-    fn handle_command(&self, input: Vec<&str>) {
+    fn handle_command(&mut self, input: Vec<&str>) {
         let cmd = input[0];
         if cmd == "run" {
             self.run();
@@ -92,18 +93,16 @@ impl Interpreter {
         }
     }
 
-    pub fn run(&self) {
-        match self.client.run() {
-            Ok(result) => println!("{}", result),
-            Err(error) => println!("error: {}", error),
+    pub fn run(&mut self) {
+        match self.debugger.execute() {
+            Ok(_) => println!("Starting program..."),
+            Err(err) => println!("Failed to start program: {}", err),
         }
     }
 
-    pub fn load_profile_command(&self, profile: Profile) {
-        match self.client.new_project(profile) {
-            Ok(result) => println!("{}", result),
-            Err(error) => println!("error: {}", error),
-        }
+    pub fn load_profile_command(&mut self, profile: Profile) {
+        println!("Created new project for: {:?}", profile.program_path);
+        self.debugger.new_project(profile);
     }
 
     fn handle_unknown_command(&self, cmd: &str) {

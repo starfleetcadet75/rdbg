@@ -1,10 +1,5 @@
-#![feature(plugin, use_extern_macros)]
-#![plugin(tarpc_plugins)]
-
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate tarpc;
 #[macro_use]
 extern crate log;
 extern crate fnv;
@@ -21,11 +16,11 @@ use std::process;
 
 use rdbg_core::core::profile::Profile;
 
-mod rpc;
 mod interpreter;
 
 use interpreter::Interpreter;
 
+/// Inits the logger using any args given.
 fn setup_logger(args: &ArgMatches) {
     let log_level = match args.occurrences_of("v") {
         0 => LogLevelFilter::Error,
@@ -46,6 +41,7 @@ fn setup_logger(args: &ArgMatches) {
     ]).unwrap();
 }
 
+/// Returns a `Profile` if the args were given for creating one.
 fn setup_profile(args: &ArgMatches) -> Option<Profile> {
     if args.is_present("exec-file") {
         let path = Path::new(args.value_of("exec-file").unwrap());
@@ -65,9 +61,7 @@ fn main() {
                 Arg::from_usage("[exec-file] 'Use EXECFILE as the executable to debug.'"),
                 Arg::from_usage("--args [val]... 'Arguments to pass to the inferior.'")  // TODO: get multiple args
                     .min_values(1)
-                    .requires("exec-file"),
-                Arg::from_usage("--connect 'Connect to a headless debugger server.'"),
-                Arg::from_usage("--headless 'Start a headless debugger.'"),
+                    .requires("exec-file")
             ],
         )
         .arg(Arg::with_name("v").short("v").multiple(true).help(
@@ -77,27 +71,15 @@ fn main() {
 
     setup_logger(&args);
 
-    // TODO: Accept args to set host:port values
-    let address = "127.0.0.1:9000".parse().unwrap();
-    let mut client = None;
-
-    if args.is_present("headless") {
-        // Start a headless debugger
-        rpc::listen(address);
-    } else if args.is_present("connect") {
-        // Connect to a headless debugger
-        client = rpc::connect(address);
-    } else {
-        client = rpc::run();
-    }
-
-    let interpreter = Interpreter::new(client.unwrap());
-
+    let mut interpreter = Interpreter::new();
     let profile = setup_profile(&args);
+
+    // If a profile was created, load it automatically at startup
     if let Some(profile) = profile {
         interpreter.load_profile_command(profile);
     }
 
+    // Run the interpreter until an error occurs
     if let Err(error) = interpreter.read_line() {
         error!("Application Error: {}", error);
         process::exit(1);
