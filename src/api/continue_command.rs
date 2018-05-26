@@ -10,6 +10,6 @@ impl Command for ContinueCommand {
     }
 
     fn usage(&self) {
-        println!("Continues running the tracee");
+        println!("Continue program being debugged, after signal or breakpoint");
     }
 }

@@ -5,7 +5,7 @@ use nix::unistd::{execve, fork, ForkResult, Pid};
 
 use std::ffi::CString;
 
-use core::debugger::TraceEvent;
+use core::TraceEvent;
 use sys::Word;
 use util::errors::*;
 
@@ -165,7 +165,11 @@ fn wait_for_signal(pid: Pid) -> RdbgResult<TraceEvent> {
         // is only reported if `WaitPidFlag::WUNTRACED` was passed. This
         // case matches the C macro `WIFSTOPPED(status)`; the second field
         // is `WSTOPSIG(status)`.
-        Ok(WaitStatus::Stopped(_, signal)) => Ok(TraceEvent::Signal(signal as u8)),
+        // Ok(WaitStatus::Stopped(_, signal)) => Ok(TraceEvent::Signal(signal as u8)),
+        Ok(WaitStatus::Stopped(_, signal)) => match signal {
+            Signal::SIGTRAP => Ok(TraceEvent::Breakpoint),
+            _ => Ok(TraceEvent::Signal(signal as u8)),
+        },
         // The traced process was stopped by a `PTRACE_EVENT_*` event. See
         // [`ptrace`(2)] for more information. All currently-defined events
         // use `SIGTRAP` as the signal; the third field is the `PTRACE_EVENT_*`

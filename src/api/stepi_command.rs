@@ -2,14 +2,14 @@ use api::Command;
 use core::debugger::Debugger;
 use util::errors::*;
 
-pub struct StepCommand;
+pub struct StepiCommand;
 
-impl Command for StepCommand {
+impl Command for StepiCommand {
     fn execute(&self, _: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
-        debugger.single_step()
+        debugger.single_step_with_breakpoint()
     }
 
     fn usage(&self) {
-        println!("Single step the next instruction");
+        println!("Single step the next instruction.");
     }
 }

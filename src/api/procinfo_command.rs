@@ -2,15 +2,15 @@ use api::Command;
 use core::debugger::Debugger;
 use util::errors::*;
 
-pub struct EntryCommand;
+pub struct ProcinfoCommand;
 
-impl Command for EntryCommand {
+impl Command for ProcinfoCommand {
     fn execute(&self, _: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
-        println!("{:#x}", debugger.program.entry());
+        println!("{}", debugger.procinfo()?);
         Ok(())
     }
 
     fn usage(&self) {
-        println!("Prints the entry point address");
+        println!("Displays information about the process being debugged.");
     }
 }

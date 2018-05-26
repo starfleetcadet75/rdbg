@@ -8,6 +8,6 @@ impl Command for StartCommand {
     fn execute(&self, _: &[&str], debugger: &mut Debugger) -> RdbgResult<()> { debugger.execute() }
 
     fn usage(&self) {
-        println!("Starts debugging the tracee process");
+        println!("Starts debugging the loaded program");
     }
 }

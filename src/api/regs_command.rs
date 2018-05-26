@@ -21,7 +21,7 @@ impl Command for RegsCommand {
     }
 
     fn usage(&self) {
-        println!("Show registers");
+        println!("Print register values");
     }
 }
 
