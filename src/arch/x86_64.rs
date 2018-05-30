@@ -5,15 +5,15 @@ use std::collections::HashMap;
 use arch::Architecture;
 use util::errors::*;
 
-/// The 32-bit X86 Architecture.
+/// The 64-bit X86 Architecture.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct X86 {
+pub struct X86_64 {
     registers: HashMap<&'static str, usize>,
     flags: HashMap<&'static str, usize>,
 }
 
-impl X86 {
-    pub fn new() -> X86 {
+impl X86_64 {
+    pub fn new() -> X86_64 {
         // See `/usr/include/sys/user.h` for register offsets.
         let registers: HashMap<&str, usize> = [
             ("r15", 0),
@@ -60,14 +60,14 @@ impl X86 {
             .cloned()
             .collect();
 
-        X86 {
+        X86_64 {
             registers: registers,
             flags: flags,
         }
     }
 }
 
-impl Architecture for X86 {
+impl Architecture for X86_64 {
     fn word_size(&self) -> usize { 64 }
 
     fn instruction_pointer(&self) -> &str { "rip" }

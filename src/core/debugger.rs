@@ -16,6 +16,8 @@ pub struct Debugger {
     pub disassembler: Capstone,
     /// The `Pid` of the currently traced process.
     pid: Pid,
+    /// Indicates if the process being debugged is currently alive.
+    alive: bool,
     /// Collection of all breakpoints currently set.
     breakpoints: HashMap<Word, Breakpoint>,
 }
@@ -33,19 +35,25 @@ impl Debugger {
             program: program,
             disassembler: disassembler,
             pid: Pid::from_raw(0),
+            alive: false,
             breakpoints: HashMap::new(),
         }
     }
 
+    pub fn is_alive(&self) -> bool { self.alive }
+
     pub fn execute(&mut self) -> RdbgResult<()> {
         self.pid = unix::execute(&self.program.program_path)?;
+        self.alive = true;
         Ok(())
     }
 
-    pub fn attach(pid: i32) -> RdbgResult<()> {
+    pub fn attach(&mut self, pid: i32) -> RdbgResult<()> {
         debug!("Attempting to attach to process with Pid: {}", pid);
-        let pid = Pid::from_raw(pid);
-        unix::attach(pid)
+        self.pid = Pid::from_raw(pid);
+        unix::attach(self.pid)?;
+        self.alive = true;
+        Ok(())
     }
 
     pub fn continue_execution(&mut self) -> RdbgResult<()> {

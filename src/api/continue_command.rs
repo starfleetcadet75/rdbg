@@ -6,6 +6,7 @@ pub struct ContinueCommand;
 
 impl Command for ContinueCommand {
     fn execute(&self, _: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
+        OnlyWhenRunning!(debugger);
         debugger.continue_execution()
     }
 

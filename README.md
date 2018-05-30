@@ -13,8 +13,6 @@ _**NOTE:** rdbg is in the very early stages of development. This may or may not 
 
 Tested on Arch Linux and Ubuntu. Due to the direct use of the ptrace syscall, rdbg currently can only function on systems with ptrace.
 
-Requires building with the Rust nightly toolchain.
-
 ```
 $ git clone https://github.com/starfleetcadet75/rdbg.git
 $ cd rdbg
@@ -31,10 +29,12 @@ See the [LICENSE file](LICENSE.md).
 
 ## References
 
-[ptrace man page](http://man7.org/linux/man-pages/man2/ptrace.2.html)    
-[Writing a Linux Debugger](https://blog.tartanllama.xyz/writing-a-linux-debugger-setup.html)    
-[Playing with ptrace](https://www.linuxjournal.com/article/6100)    
-[Loading and ptrace'ing a process in Rust](http://system.joekain.com/2015/07/15/rust-load-and-ptrace.html)    
-[Threads and fork(): think twice before mixing them](http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them)    
-[nix-rust](https://github.com/nix-rust/nix)    
-[gtrace](https://github.com/geofft/gtrace)    
+[ptrace man page](http://man7.org/linux/man-pages/man2/ptrace.2.html)
+[Writing a Linux Debugger](https://blog.tartanllama.xyz/writing-a-linux-debugger-setup.html)
+[Programmatic access to the call stack in C++](https://eli.thegreenplace.net/2015/programmatic-access-to-the-call-stack-in-c)
+[Playing with ptrace](https://www.linuxjournal.com/article/6100)
+[Loading and ptrace'ing a process in Rust](http://system.joekain.com/2015/07/15/rust-load-and-ptrace.html)
+[Threads and fork(): think twice before mixing them](http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them)
+[Write yourself an strace in 70 lines of code](https://blog.nelhage.com/2010/08/write-yourself-an-strace-in-70-lines-of-code)
+[nix-rust](https://github.com/nix-rust/nix)
+[gtrace](https://github.com/geofft/gtrace)

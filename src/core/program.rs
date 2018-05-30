@@ -4,7 +4,7 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 
-use arch::x86::X86;
+use arch::x86_64::X86_64;
 use arch::Architecture;
 use util::errors::*;
 
@@ -26,8 +26,8 @@ impl Program {
         let architecture = {
             let binary = File::parse(&bytes)?;
             match binary.machine() {
-                Machine::X86 => Box::new(X86::new()),
-                Machine::X86_64 => Box::new(X86::new()),
+                Machine::X86 => Box::new(X86_64::new()),
+                Machine::X86_64 => Box::new(X86_64::new()),
                 _ => bail!("Unsupported Architecture"),
             }
         };
@@ -39,9 +39,7 @@ impl Program {
         })
     }
 
-    pub(crate) fn get(&self) -> File {
-        File::parse(&self.bytes).expect("Failed to parse file bytes")
-    }
+    pub fn get(&self) -> File { File::parse(&self.bytes).expect("Failed to parse file bytes") }
 
     pub fn entry(&self) -> u64 { self.get().entry() }
 

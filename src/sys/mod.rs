@@ -1,4 +1,4 @@
-pub(crate) mod unix;
+pub mod unix;
 
 /// An integer type, whose size equals a machine word
 ///

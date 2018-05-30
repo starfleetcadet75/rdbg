@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use util::errors::RdbgResult;
 
-pub mod x86;
+pub mod x86_64;
 
 pub trait Architecture: Debug {
     /// Get the size of a natural word for this architecture in bits.

@@ -6,6 +6,7 @@ pub struct StepiCommand;
 
 impl Command for StepiCommand {
     fn execute(&self, _: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
+        OnlyWhenRunning!(debugger);
         debugger.single_step_with_breakpoint()
     }
 

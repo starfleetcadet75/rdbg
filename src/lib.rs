@@ -11,6 +11,8 @@ extern crate nix;
 extern crate object;
 extern crate simplelog;
 
+#[macro_use]
+mod macros;
 pub mod api;
 mod arch;
 mod core;

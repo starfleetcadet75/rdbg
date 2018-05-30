@@ -7,6 +7,8 @@ pub struct BreakCommand;
 
 impl Command for BreakCommand {
     fn execute(&self, args: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
+        OnlyWhenRunning!(debugger);
+
         if 0 < args.len() {
             if args[0].starts_with("0x") {
                 // Remove '0x' from hex address

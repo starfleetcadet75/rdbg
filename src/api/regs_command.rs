@@ -6,6 +6,8 @@ pub struct RegsCommand;
 
 impl Command for RegsCommand {
     fn execute(&self, args: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
+        OnlyWhenRunning!(debugger);
+
         if 0 < args.len() {
             // TODO: Only print the registers given as args, in the order given
             self.print_register("rip", debugger)?;
