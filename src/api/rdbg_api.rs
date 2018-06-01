@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use api::break_command::BreakCommand;
 use api::continue_command::ContinueCommand;
+use api::detach_command::DetachCommand;
 use api::entry_command::EntryCommand;
+use api::hexdump_command::HexdumpCommand;
+use api::kill_command::KillCommand;
 use api::procinfo_command::ProcinfoCommand;
 use api::regs_command::RegsCommand;
 use api::start_command::StartCommand;
@@ -27,6 +30,9 @@ impl RdbgApi {
         commands.insert("regs", Box::new(RegsCommand));
         commands.insert("stepi", Box::new(StepiCommand));
         commands.insert("procinfo", Box::new(ProcinfoCommand));
+        commands.insert("hexdump", Box::new(HexdumpCommand));
+        commands.insert("kill", Box::new(KillCommand));
+        commands.insert("detach", Box::new(DetachCommand));
 
         RdbgApi {
             commands: commands,

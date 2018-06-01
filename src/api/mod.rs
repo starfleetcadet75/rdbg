@@ -5,7 +5,10 @@ pub use self::rdbg_api::RdbgApi;
 
 mod break_command;
 mod continue_command;
+mod detach_command;
 mod entry_command;
+mod hexdump_command;
+mod kill_command;
 mod procinfo_command;
 mod rdbg_api;
 mod regs_command;

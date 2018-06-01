@@ -6,6 +6,7 @@
 extern crate error_chain;
 #[macro_use]
 extern crate log;
+extern crate ansi_term;
 extern crate capstone;
 extern crate nix;
 extern crate object;

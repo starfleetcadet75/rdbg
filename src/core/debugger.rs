@@ -4,6 +4,7 @@ use nix::unistd::Pid;
 use std::collections::HashMap;
 
 use core::breakpoint::Breakpoint;
+use core::memory::Memory;
 use core::program::Program;
 use core::TraceEvent;
 use sys::{unix, Word};
@@ -14,6 +15,8 @@ pub struct Debugger {
     pub program: Program,
     /// The `Capstone` engine configured to handle the architecture of the loaded program.
     pub disassembler: Capstone,
+    /// Represents the memory segments of the process.
+    memory: Option<Memory>,
     /// The `Pid` of the currently traced process.
     pid: Pid,
     /// Indicates if the process being debugged is currently alive.
@@ -34,6 +37,7 @@ impl Debugger {
         Debugger {
             program: program,
             disassembler: disassembler,
+            memory: None,
             pid: Pid::from_raw(0),
             alive: false,
             breakpoints: HashMap::new(),
@@ -43,27 +47,36 @@ impl Debugger {
     pub fn is_alive(&self) -> bool { self.alive }
 
     pub fn execute(&mut self) -> RdbgResult<()> {
+        debug!("Starting new inferior for debugging");
+
         self.pid = unix::execute(&self.program.program_path)?;
+        self.memory = Some(Memory::new(self.pid)?);
         self.alive = true;
         Ok(())
     }
 
     pub fn attach(&mut self, pid: i32) -> RdbgResult<()> {
         debug!("Attempting to attach to process with Pid: {}", pid);
+
         self.pid = Pid::from_raw(pid);
         unix::attach(self.pid)?;
+        self.memory = Some(Memory::new(self.pid)?);
         self.alive = true;
         Ok(())
     }
+
+    pub fn detach(&self) -> RdbgResult<()> { unix::detach(self.pid) }
 
     pub fn continue_execution(&mut self) -> RdbgResult<()> {
         debug!("Continuing execution of process");
         self.step_over_breakpoint()?;
 
         if unix::continue_execution(self.pid)? == TraceEvent::Breakpoint {
+            // Back up PC by one instruction
             let pc = self.program.architecture.instruction_pointer();
             let value = self.read_register(pc)? - 1;
             self.write_register(pc, value)?;
+
             println!("Hit breakpoint at {:#x}", value);
         }
         Ok(())
@@ -104,6 +117,11 @@ impl Debugger {
             Some(offset) => unix::write_register(self.pid, offset, data),
             None => Err(RdbgErrorKind::InvalidRegister(register.into()).into()),
         }
+    }
+
+    pub fn read_memory(&self, address: Word, size: usize) -> RdbgResult<Vec<u8>> {
+        // Should be a safe unwrap since this can only be called when a process is running
+        self.memory.as_ref().unwrap().read(address, size)
     }
 
     pub fn procinfo(&self) -> RdbgResult<String> {
@@ -189,6 +207,17 @@ impl Debugger {
                 self.single_step()?;
                 self.enable_breakpoint(pc)?;
             }
+        }
+        Ok(())
+    }
+
+    pub fn kill(&mut self) -> RdbgResult<()> {
+        match unix::kill(self.pid)? {
+            TraceEvent::Killed(signal, _) => {
+                self.alive = false;
+                println!("Inferior killed by signal {}", signal);
+            }
+            _ => println!("Received unexpected event"),
         }
         Ok(())
     }

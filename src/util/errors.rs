@@ -1,5 +1,6 @@
 use nix;
 use std::io;
+use sys::Word;
 
 error_chain! {
   types {
@@ -13,6 +14,10 @@ error_chain! {
     InvalidRegister(register: String) {
       description("Invalid register name")
       display("Invalid register name: {}", register)
+    }
+    InvalidMemoryAccess(address: Word) {
+      description("Attempted to access invalid memory")
+      display("Invalid address: {:#08x}", address)
     }
   }
 }

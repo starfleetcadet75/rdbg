@@ -8,3 +8,11 @@ macro_rules! OnlyWhenRunning {
         }
     };
 }
+
+/// Attempts to parse a hex string to a `usize`.
+macro_rules! FromHexString {
+    ($address:expr) => {
+        usize::from_str_radix($address.split("x").skip(1).next().unwrap(), 16)
+            .chain_err(|| format!("Invalid address: {}", $address))?
+    };
+}

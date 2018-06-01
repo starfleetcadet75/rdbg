@@ -1,5 +1,6 @@
 mod breakpoint;
 pub mod debugger;
+mod memory;
 mod program;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
