@@ -1,4 +1,4 @@
-use capstone::prelude::*;
+use capstone::*;
 use nix::unistd::Pid;
 
 use std::collections::HashMap;
@@ -220,5 +220,40 @@ impl Debugger {
             _ => println!("Received unexpected event"),
         }
         Ok(())
+    }
+
+    fn disassemble_instruction(&self, address: Word) -> RdbgResult<Option<Insn>> {
+        if let Some(ref memory) = self.memory {
+            // First test if the given address accesses valid memory
+            memory
+                .peek(address)
+                .chain_err(|| format!("Disassembling at invalid memory address: {:#x}", address))?;
+
+            let size = 16;
+            let code = memory.read(address, size)?; // Max instruction length * number of instructions to read
+
+            let instrs = self
+                .disassembler
+                .disasm_count(&code, address as u64, 1)
+                .chain_err(|| format!("Failed to disassemble code at {:#x}", address))?;
+            return Ok(instrs.iter().next());
+        }
+        unreachable!()
+    }
+
+    pub fn disassemble(&self, address: Word, count: usize) -> RdbgResult<Vec<Insn>> {
+        let mut address = address;
+        let mut retval = vec![];
+
+        for _ in 0..count {
+            match self.disassemble_instruction(address)? {
+                Some(instr) => {
+                    address += instr.bytes().len();
+                    retval.push(instr);
+                }
+                None => break,
+            }
+        }
+        Ok(retval)
     }
 }

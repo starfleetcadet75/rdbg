@@ -99,7 +99,7 @@ impl Architecture for X86_64 {
         Capstone::new()
             .x86()
             .mode(arch::x86::ArchMode::Mode64)
-            .syntax(arch::x86::ArchSyntax::Att)
+            .syntax(arch::x86::ArchSyntax::Intel)
             .detail(true)
             .build()
             .chain_err(|| "Capstone: Failed to create Capstone engine")

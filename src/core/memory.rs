@@ -28,6 +28,57 @@ impl MemorySegment {
         let address = address as i64;
         self.start <= address && address < self.end
     }
+
+    /// Checks whether this `MemorySegment` is marked as the stack.
+    pub fn is_stack(&self) -> bool {
+        if let Some(ref name) = self.name {
+            return name == "[stack]";
+        }
+        false
+    }
+
+    /// Checks if this `MemorySegment` is from a memory mapped file.
+    pub fn is_memory_mapped_file(&self) -> bool {
+        if let Some(ref name) = self.name {
+            return name.starts_with('[');
+        }
+        false
+    }
+
+    /// Checks whether the `MemorySegment` has read permissions.
+    pub fn read(&self) -> bool { (self.permissions & 4) == 1 }
+
+    /// Checks whether the `MemorySegment` has write permissions.
+    pub fn write(&self) -> bool { (self.permissions & 2) == 1 }
+
+    /// Checks whether the `MemorySegment` has execute permissions.
+    pub fn execute(&self) -> bool { (self.permissions & 1) == 1 }
+
+    /// Create a String that shows the `MemorySegment` permissions as they appear in `/proc/PID/maps`.
+    pub fn permission_string(&self) -> String {
+        let mut s = String::new();
+
+        if self.read() {
+            s.push('r');
+        } else {
+            s.push('-');
+        }
+
+        if self.write() {
+            s.push('w');
+        } else {
+            s.push('-');
+        }
+
+        if self.execute() {
+            s.push('x');
+        } else {
+            s.push('-');
+        }
+
+        s.push('p');
+        s
+    }
 }
 
 pub struct Memory {
@@ -73,6 +124,11 @@ impl Memory {
             // let offset = address % wordsize;
         }
         Ok(result)
+    }
+
+    /// Read one byte from the specified address.
+    pub fn peek(&self, address: Word) -> RdbgResult<u8> {
+        self.read(address, 1).map(|mut x| x.pop().unwrap())
     }
 
     /// Validates whether a given address is a valid location in memory.
