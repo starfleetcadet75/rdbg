@@ -52,15 +52,15 @@ pub fn continue_execution(pid: Pid) -> RdbgResult<TraceEvent> {
 }
 
 /// Move the stopped tracee process forward by a single step as with
-/// `ptrace(PTRACE_SINGLESTEP, ...)`
+/// `ptrace(PTRACE_SINGLESTEP, ...)`.
 ///
-/// Advances the execution of the process with PID `pid` by a single step
+/// Advances the execution of the process with PID `pid` by a single step.
 pub fn single_step(pid: Pid) -> RdbgResult<TraceEvent> {
     ptrace::step(pid, None)?;
     wait_for_signal(pid)
 }
 
-/// Ask for next syscall, as with `ptrace(PTRACE_SYSCALL, ...)`
+/// Ask for next syscall, as with `ptrace(PTRACE_SYSCALL, ...)`.
 ///
 /// Arranges for the tracee to be stopped at the next entry to or exit from a system call.
 pub fn syscall(pid: Pid) -> RdbgResult<()> {
@@ -82,8 +82,8 @@ pub fn read_memory(pid: Pid, address: Word) -> RdbgResult<Word> {
             address as *mut _,
             0 as *mut _,
         ).map(|r| r as Word)
-            .and_then(|r| Ok(r))
-            .chain_err(|| format!("Failed to read from memory at address {:#x}", address))
+        .and_then(|r| Ok(r))
+        .chain_err(|| format!("Failed to read from memory at address {:#x}", address))
     }
 }
 
@@ -106,7 +106,7 @@ pub fn write_memory(pid: Pid, address: Word, data: Word) -> RdbgResult<()> {
             address as *mut _,
             data as *mut _,
         ).map(|_| ())
-            .chain_err(|| format!("Failed to write to memory at address {:#x}", address))
+        .chain_err(|| format!("Failed to write to memory at address {:#x}", address))
     }
 }
 
@@ -121,8 +121,8 @@ pub fn read_register(pid: Pid, register: usize) -> RdbgResult<Word> {
             register as *mut _,
             0 as *mut _,
         ).map(|r| r as Word)
-            .and_then(|r| Ok(r))
-            .chain_err(|| "Failed to read from register")
+        .and_then(|r| Ok(r))
+        .chain_err(|| "Failed to read from register")
     }
 }
 
@@ -141,7 +141,7 @@ pub fn write_register(pid: Pid, register: usize, data: Word) -> RdbgResult<()> {
             register as *mut _,
             data as *mut _,
         ).map(|_| ())
-            .chain_err(|| "Failed to write to register")
+        .chain_err(|| "Failed to write to register")
     }
 }
 

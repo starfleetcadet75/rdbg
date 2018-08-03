@@ -9,6 +9,7 @@ use api::kill_command::KillCommand;
 use api::near_command::NearCommand;
 use api::procinfo_command::ProcinfoCommand;
 use api::regs_command::RegsCommand;
+use api::sections_command::SectionsCommand;
 use api::start_command::StartCommand;
 use api::stepi_command::StepiCommand;
 use api::Command;
@@ -35,6 +36,7 @@ impl RdbgApi {
         commands.insert("hexdump", Box::new(HexdumpCommand));
         commands.insert("kill", Box::new(KillCommand));
         commands.insert("detach", Box::new(DetachCommand));
+        commands.insert("sections", Box::new(SectionsCommand));
 
         RdbgApi {
             commands: commands,

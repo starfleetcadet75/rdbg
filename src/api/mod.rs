@@ -13,6 +13,7 @@ mod near_command;
 mod procinfo_command;
 mod rdbg_api;
 mod regs_command;
+mod sections_command;
 mod start_command;
 mod stepi_command;
 

@@ -1,5 +1,6 @@
 use object::{File, Machine, Object};
 
+use std::fmt::Write;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -41,17 +42,22 @@ impl Program {
 
     pub fn get(&self) -> File { File::parse(&self.bytes).expect("Failed to parse file bytes") }
 
+    /// The address of the entry point to the `Program`.
     pub fn entry(&self) -> u64 { self.get().entry() }
 
+    /// Prints segment information parsed from the program.
     pub fn segments(&self) {
         for segment in self.get().segments() {
             println!("{:?}", segment);
         }
     }
 
-    pub fn sections(&self) {
+    /// Prints section header information parsed from the program.
+    pub fn sections(&self) -> String {
+        let mut output = String::new();
         for section in self.get().sections() {
-            println!("{:?}", section);
+            write!(&mut output, "{:#?}", section).unwrap()
         }
+        output
     }
 }

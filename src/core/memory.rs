@@ -40,19 +40,19 @@ impl MemorySegment {
     /// Checks if this `MemorySegment` is from a memory mapped file.
     pub fn is_memory_mapped_file(&self) -> bool {
         if let Some(ref name) = self.name {
-            return name.starts_with('[');
+            return !name.starts_with('[');
         }
         false
     }
 
     /// Checks whether the `MemorySegment` has read permissions.
-    pub fn read(&self) -> bool { (self.permissions & 4) == 1 }
+    pub fn read(&self) -> bool { (self.permissions & 1 << 2) != 0 }
 
     /// Checks whether the `MemorySegment` has write permissions.
-    pub fn write(&self) -> bool { (self.permissions & 2) == 1 }
+    pub fn write(&self) -> bool { (self.permissions & 1 << 1) != 0 }
 
     /// Checks whether the `MemorySegment` has execute permissions.
-    pub fn execute(&self) -> bool { (self.permissions & 1) == 1 }
+    pub fn execute(&self) -> bool { (self.permissions & 1 << 0) != 0 }
 
     /// Create a String that shows the `MemorySegment` permissions as they appear in `/proc/PID/maps`.
     pub fn permission_string(&self) -> String {
@@ -81,6 +81,9 @@ impl MemorySegment {
     }
 }
 
+/// `Memory` provides a wrapper that allows the `Debugger` to perform memory operations on the traced process.
+/// It creates a list of `MemorySegment`s by reading from '/proc/PID/maps' and provides a faster alternative
+/// to using `ptrace` requests for modifying memory.
 pub struct Memory {
     /// Copy of the `Pid` field of `Debugger`. Will always be the same value.
     pid: Pid,
@@ -132,6 +135,7 @@ impl Memory {
     }
 
     /// Validates whether a given address is a valid location in memory.
+    /// Returns the name of the `MemorySegment` that the address is located in.
     fn validate_address(&self, address: Word) -> RdbgResult<String> {
         // TODO: Do something with the name of the section and its permissions
         for segment in self.segments.iter() {
@@ -144,6 +148,7 @@ impl Memory {
         Err(RdbgErrorKind::InvalidMemoryAccess(address).into())
     }
 
+    /// Parses `MemorySegment`s from '/proc/PID/maps'.
     fn parse_memory_segments(pid: Pid) -> RdbgResult<Vec<MemorySegment>> {
         let map_file = format!("/proc/{}/maps", pid);
         let fd = File::open(PathBuf::from(&map_file))?;
@@ -198,5 +203,54 @@ impl Memory {
             });
         }
         Ok(segments)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MemorySegment;
+
+    #[test]
+    fn memory_segment() {
+        let start = 0x7ffd81a29000;
+        let end = 0x7ffd81a4a000;
+        let mut permissions: u8 = 0;
+        permissions |= 4;
+        permissions |= 2;
+        let offset = 0;
+        let name = Some(String::from("[stack]"));
+
+        let segment = MemorySegment {
+            start: start,
+            end: end,
+            size: end - start,
+            permissions: permissions,
+            offset: offset,
+            name: name,
+        };
+
+        assert_eq!(segment.is_stack(), true, "memory segment is the stack");
+        assert_eq!(
+            segment.is_memory_mapped_file(),
+            false,
+            "the stack is not backed by a file"
+        );
+        assert_eq!(segment.read(), true, "memory segment has read permission");
+        assert_eq!(segment.write(), true, "memory segment has write permission");
+        assert_eq!(
+            segment.execute(),
+            false,
+            "memory segment does not have execute permission"
+        );
+        assert_eq!(
+            segment.contains(0x7ffd81a2000),
+            false,
+            "memory segment contains address"
+        );
+        assert_eq!(
+            segment.contains(0x0),
+            false,
+            "memory segment does not contain address"
+        );
     }
 }
