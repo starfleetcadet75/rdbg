@@ -3,8 +3,8 @@ use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 
 use nix::unistd::Pid;
-use sys::Word;
 use util::errors::*;
+use Word;
 
 /// Represents a parsed memory segment from reading '/proc/PID/maps'.
 pub struct MemorySegment {

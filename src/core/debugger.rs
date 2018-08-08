@@ -7,8 +7,9 @@ use core::breakpoint::Breakpoint;
 use core::memory::Memory;
 use core::program::Program;
 use core::TraceEvent;
-use sys::{unix, Word};
+use sys;
 use util::errors::*;
+use Word;
 
 pub struct Debugger {
     /// `Program` contains most of the static information for a loaded program.
@@ -49,7 +50,7 @@ impl Debugger {
     pub fn execute(&mut self) -> RdbgResult<()> {
         debug!("Starting new inferior for debugging");
 
-        self.pid = unix::execute(&self.program.program_path)?;
+        self.pid = sys::execute(&self.program.program_path)?;
         self.memory = Some(Memory::new(self.pid)?);
         self.alive = true;
         Ok(())
@@ -59,19 +60,19 @@ impl Debugger {
         debug!("Attempting to attach to process with Pid: {}", pid);
 
         self.pid = Pid::from_raw(pid);
-        unix::attach(self.pid)?;
+        sys::attach(self.pid)?;
         self.memory = Some(Memory::new(self.pid)?);
         self.alive = true;
         Ok(())
     }
 
-    pub fn detach(&self) -> RdbgResult<()> { unix::detach(self.pid) }
+    pub fn detach(&self) -> RdbgResult<()> { sys::detach(self.pid) }
 
     pub fn continue_execution(&mut self) -> RdbgResult<()> {
         debug!("Continuing execution of process");
         self.step_over_breakpoint()?;
 
-        if unix::continue_execution(self.pid)? == TraceEvent::Breakpoint {
+        if sys::continue_execution(self.pid)? == TraceEvent::Breakpoint {
             // Back up PC by one instruction
             let pc = self.program.architecture.instruction_pointer();
             let value = self.read_register(pc)? - 1;
@@ -84,7 +85,7 @@ impl Debugger {
 
     pub fn single_step(&self) -> RdbgResult<()> {
         debug!("Single stepping the process");
-        let event = unix::single_step(self.pid)?;
+        let event = sys::single_step(self.pid)?;
         warn!("Got event: {:?}", event);
         Ok(())
     }
@@ -99,13 +100,13 @@ impl Debugger {
         }
     }
 
-    pub fn syscall(&self) -> RdbgResult<()> { unix::syscall(self.pid) }
+    pub fn syscall(&self) -> RdbgResult<()> { sys::syscall(self.pid) }
 
     pub fn read_register(&self, register: &str) -> RdbgResult<Word> {
         debug!("Reading from register: {:?}", register);
 
         match self.program.architecture.get_register_offset(register) {
-            Some(offset) => unix::read_register(self.pid, offset),
+            Some(offset) => sys::read_register(self.pid, offset),
             None => Err(RdbgErrorKind::InvalidRegister(register.into()).into()),
         }
     }
@@ -114,7 +115,7 @@ impl Debugger {
         debug!("Writing to register: {:?}", register);
 
         match self.program.architecture.get_register_offset(register) {
-            Some(offset) => unix::write_register(self.pid, offset, data),
+            Some(offset) => sys::write_register(self.pid, offset, data),
             None => Err(RdbgErrorKind::InvalidRegister(register.into()).into()),
         }
     }
@@ -166,12 +167,12 @@ impl Debugger {
     pub fn enable_breakpoint(&mut self, address: Word) -> RdbgResult<()> {
         if let Some(breakpoint) = self.breakpoints.get_mut(&address) {
             if !breakpoint.enabled {
-                let mut data = unix::read_memory(self.pid, address)?;
+                let mut data = sys::read_memory(self.pid, address)?;
                 breakpoint.stored_word = data.clone(); // Save the word being overwritten
 
                 data &= !0xff; // Bitmask out the byte to change
                 data |= 0xcc; // Set the `int3` instruction (opcode 0xcc)
-                unix::write_memory(self.pid, address, data)?;
+                sys::write_memory(self.pid, address, data)?;
                 breakpoint.enabled = true;
             }
         } else {
@@ -183,11 +184,11 @@ impl Debugger {
     pub fn disable_breakpoint(&mut self, address: Word) -> RdbgResult<()> {
         if let Some(breakpoint) = self.breakpoints.get_mut(&address) {
             if breakpoint.enabled {
-                let mut data = unix::read_memory(self.pid, address)?;
+                let mut data = sys::read_memory(self.pid, address)?;
                 data &= !0xff;
                 data |= breakpoint.stored_word; // Restore the saved word at the breakpoint address
 
-                unix::write_memory(self.pid, address, data)?;
+                sys::write_memory(self.pid, address, data)?;
                 breakpoint.enabled = false;
             }
         } else {
@@ -212,7 +213,7 @@ impl Debugger {
     }
 
     pub fn kill(&mut self) -> RdbgResult<()> {
-        match unix::kill(self.pid)? {
+        match sys::kill(self.pid)? {
             TraceEvent::Killed(signal, _) => {
                 self.alive = false;
                 println!("Inferior killed by signal {}", signal);

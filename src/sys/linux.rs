@@ -6,8 +6,8 @@ use nix::unistd::{execve, fork, ForkResult, Pid};
 use std::ffi::CString;
 
 use core::TraceEvent;
-use sys::Word;
 use util::errors::*;
+use Word;
 
 pub fn execute(program: &str) -> RdbgResult<Pid> {
     let program_as_cstring = &CString::new(program).expect("Failed to convert path to CString");

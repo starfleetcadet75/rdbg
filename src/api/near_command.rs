@@ -8,7 +8,9 @@ impl Command for NearCommand {
     fn execute(&self, args: &[&str], debugger: &mut Debugger) -> RdbgResult<()> {
         OnlyWhenRunning!(debugger);
 
-        let mut address = debugger.read_register("rip")?;
+        let pc = debugger.program.architecture.instruction_pointer();
+        let mut address = debugger.read_register(pc)?;
+
         if 0 < args.len() {
             if args[0].starts_with("0x") {
                 address = FromHexString!(args[0]);

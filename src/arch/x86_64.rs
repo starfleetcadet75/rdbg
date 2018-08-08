@@ -43,7 +43,8 @@ impl X86_64 {
             ("es", 192),
             ("fs", 200),
             ("gs", 208),
-        ].iter()
+        ]
+            .iter()
             .cloned()
             .collect();
 
@@ -56,7 +57,8 @@ impl X86_64 {
             ("IF", 9),
             ("DF", 10),
             ("OF", 11),
-        ].iter()
+        ]
+            .iter()
             .cloned()
             .collect();
 
@@ -105,23 +107,3 @@ impl Architecture for X86_64 {
             .chain_err(|| "Capstone: Failed to create Capstone engine")
     }
 }
-
-// pub mod x86 {
-//    pub const EBX: usize = 0;
-//    pub const ECX: usize = 4;
-//    pub const EDX: usize = 8;
-//    pub const ESI: usize = 12;
-//    pub const EDI: usize = 16;
-//    pub const EBP: usize = 20;
-//    pub const EAX: usize = 24;
-//    pub const XDS: usize = 28;
-//    pub const XES: usize = 32;
-//    pub const XFS: usize = 36;
-//    pub const XGS: usize = 40;
-//    pub const ORIG_EAX: usize = 44;
-//    pub const EIP: usize = 48;
-//    pub const XCS: usize = 52;
-//    pub const EFLAGS: usize = 56;
-//    pub const ESP: usize = 60;
-//    pub const XSS: usize = 64;
-//}

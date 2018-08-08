@@ -1,6 +1,6 @@
 use nix;
 use std::io;
-use sys::Word;
+use Word;
 
 error_chain! {
   types {

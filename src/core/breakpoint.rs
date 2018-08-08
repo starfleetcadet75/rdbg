@@ -1,4 +1,4 @@
-use sys::Word;
+use Word;
 
 #[derive(Debug)]
 pub struct Breakpoint {
