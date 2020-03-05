@@ -1,44 +1,28 @@
 language: rust
+
 rust:
   - stable
-  - beta
   - nightly
+  - beta
+
 matrix:
   allow_failures:
     - rust:
         - beta
 
-  include:
-    # Mac builds
-    # - env: TARGET=i686-apple-darwin
-    #   os: osx
-    # - env: TARGET=x86_64-apple-darwin
-    #   os: osx
+cache:
+  directories:
+    - /home/travis/.cargo
 
-    # Linux
-    - env: TARGET=i686-unknown-linux-gnu
-    - env: TARGET=x86_64-unknown-linux-gnu
-
-cache: cargo
 before_cache:
-  # Travis can't cache files that are not readable by "others"
-  - chmod -R a+r $HOME/.cargo
+  - rm -rf /home/travis/.cargo/registry
 
-branches:
-  only:
-    - master
-
-before_script:
-  - git config --global user.name "Travis bot"
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = linux ] && [ "$TRAVIS_RUST_VERSION" = stable ]; then
+      rustup component add rustfmt;
+      cargo fmt --all -- --check;
+    fi
 
 script: |
   cargo build --verbose --all &&
   cargo test --verbose --all
-
-notifications:
-  email: false
-  webhooks:
-    urls: https://webhooks.gitter.im/e/365ee5abbaba33b8f6d6
-    on_success: change
-    on_failure: always
-    on_start: never

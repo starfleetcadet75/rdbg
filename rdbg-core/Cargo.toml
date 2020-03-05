@@ -1,0 +1,21 @@
+[package]
+name = "rdbg-core"
+version = "0.1.0"
+edition = "2018"
+authors = ["starfleetcadet75 <starfleetcadet75@gmail.com>"]
+description = "A debugger written in Rust"
+homepage = "https://github.com/starfleetcadet75/rdbg/"
+repository = "https://github.com/starfleetcadet75/rdbg"
+keywords = [
+    "debugger",
+    "gdb",
+    "lldb",
+    "rust",
+]
+
+[dependencies]
+log = "0.4.8"
+error-chain = "0.12.1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+rdbg-sys = { path = "../rdbg-sys" }

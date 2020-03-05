@@ -1,0 +1,8 @@
+[package]
+name = "rdbg-server"
+version = "0.1.0"
+authors = ["starfleetcadet75 <starfleetcadet75@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+rdbg-sys = { path = "../rdbg-sys" }

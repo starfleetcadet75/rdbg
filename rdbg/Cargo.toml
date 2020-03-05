@@ -1,0 +1,14 @@
+[package]
+name = "rdbg"
+version = "0.1.0"
+authors = ["starfleetcadet75 <starfleetcadet75@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+dirs = "2.0"
+log = "0.4.8"
+clap = "2.33.0"
+simplelog = "0.7.4"
+rustyline-derive = "0.2.0"
+rustyline = { git = "https://github.com/kkawakam/rustyline" }
+rdbg-core = { path = "../rdbg-core" }
